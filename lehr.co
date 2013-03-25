@@ -1,0 +1,75 @@
+# preoder of data on slide 7 of
+# http://users.eecs.northwestern.edu/~haizhou/357/lec3.pdf
+data =
+  node: \V
+  left:
+    node: \H
+    left:
+      node: \V
+      left:
+        node: \H
+        left:
+          node: 1
+        right:
+          node: 6
+      right:
+        node: 2
+    right:
+      node: \V
+      left:
+        node: 7
+      right:
+        node: 5
+  right:
+    node: \H
+    left:
+      node: 3
+    right:
+      node: 4
+
+# adapted from http://blog.pixelingene.com/2011/07/building-a-tree-diagram-in-d3-js/
+<-! document.add-event-listener \DOMContentLoaded
+
+tree = d3.layout.tree!size [500 500] .children ->
+  []
+    &push that if it.left
+    &push that if it.right
+
+nodes = tree.nodes data
+links = tree.links nodes
+
+layout-root = d3.select \body
+  .append \svg:svg .attr width: 600 height: 600
+  .append \svg:g
+    .attr
+      class     : \container
+      transform : 'translate(50, 50)'
+
+link = d3.svg.diagonal!
+
+layout-root.select-all \path.link
+  .data links .enter!
+  .append \svg:path
+  .attr
+    class : \link
+    d     : link
+
+node-group = layout-root.select-all \g.node
+  .data nodes .enter!
+  .append \svg:g
+  .attr
+    class     : \node
+    transform : ({x, y}) -> "translate(#x, #y)"
+
+node-group.append \svg:circle
+  .attr
+    class : \node-dot
+    r     : 3
+
+node-group.append \svg:text
+  .attr
+    text-anchor : \start
+    dx          : -20
+  .text -> it.node
+
+
