@@ -2,3 +2,7 @@
   fill: none;
   stroke: #808080;
 }
+.node-dot {
+  fill: #ffc0cb;
+  stroke: #808080;
+}
