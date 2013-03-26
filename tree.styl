@@ -2,6 +2,28 @@
   fill none
   stroke gray
 
+// center text in bubbles
+.node-text
+  text-anchor middle
+  dominant-baseline middle
+
 .node-dot
-  fill pink
+  fill white
   stroke gray
+
+.node:hover > .node-dot, .hovered
+  fill pink
+  stroke none
+
+.node:hover
+  cursor pointer
+
+// string
+
+.token
+  padding 1em
+  font-size 16pt
+
+.token:hover, .highlight
+  background pink
+  cursor pointer

@@ -40,7 +40,7 @@
     }
   };
   document.addEventListener('DOMContentLoaded', function(){
-    var tree, nodes, links, layoutRoot, link, nodeGroup;
+    var tree, nodes, links, layoutRoot, link, nodeGroup, circles, exprRoot, expr, visit, tokens;
     tree = d3.layout.tree().size([500, 500]).children(function(it){
       var x0$, that;
       x0$ = [];
@@ -74,15 +74,41 @@
         return "translate(" + x + ", " + y + ")";
       }
     });
-    nodeGroup.append('svg:circle').attr({
+    circles = nodeGroup.append('svg:circle').attr({
       'class': 'node-dot',
-      r: 3
+      r: 20
     });
     nodeGroup.append('svg:text').attr({
-      textAnchor: 'start',
-      dx: -20
+      'class': 'node-text'
     }).text(function(it){
       return it.node;
+    });
+    exprRoot = d3.select('body').append('p');
+    expr = [];
+    visit = function(it){
+      var that;
+      expr.push(it.node);
+      if (that = it.left) {
+        visit(that);
+      }
+      if (that = it.right) {
+        return visit(that);
+      }
+    };
+    visit(data);
+    tokens = exprRoot.selectAll('span.token').data(expr).enter().append('span').attr({
+      'class': 'token'
+    }).text(function(it){
+      return it;
+    }).on('mouseover', function(_, i){
+      return d3.select(circles[0][i]).classed('hovered', true);
+    }).on('mouseout', function(_, i){
+      return d3.select(circles[0][i]).classed('hovered', false);
+    });
+    nodeGroup.on('mouseover', function(_, i){
+      return d3.select(tokens[0][i]).classed('highlight', true);
+    }).on('mouseout', function(_, i){
+      return d3.select(tokens[0][i]).classed('highlight', false);
     });
   });
 }).call(this);

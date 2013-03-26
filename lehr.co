@@ -61,15 +61,41 @@ node-group = layout-root.select-all \g.node
     class     : \node
     transform : ({x, y}) -> "translate(#x, #y)"
 
-node-group.append \svg:circle
+circles = node-group.append \svg:circle
   .attr do
     class : \node-dot
-    r     : 3
+    r     : 20
 
 node-group.append \svg:text
-  .attr do
-    text-anchor : \start
-    dx          : -20
+  .attr class: \node-text
   .text -> it.node
 
+# draw polish expr
+expr-root = d3.select \body .append \p
+
+# preprder walk
+expr = []
+visit = ->
+  expr.push it.node
+  visit that if it.left
+  visit that if it.right
+
+visit data
+
+tokens = expr-root.select-all \span.token
+  .data expr .enter!
+  .append \span
+    .attr class: \token
+    .text -> it
+    .on \mouseover (_, i) ->
+      d3.select circles.0[i] .classed \hovered true
+    .on \mouseout  (_, i) ->
+      d3.select circles.0[i] .classed \hovered false
+
+# highlight tokens from graph
+node-group
+  .on \mouseover (_, i) ->
+    d3.select tokens.0[i] .classed \highlight true
+  .on \mouseout  (_, i) ->
+    d3.select tokens.0[i] .classed \highlight false
 
