@@ -41,7 +41,7 @@ links = tree.links nodes
 layout-root = d3.select \body
   .append \svg:svg .attr width: 600 height: 600
   .append \svg:g
-    .attr
+    .attr do
       class     : \container
       transform : 'translate(50, 50)'
 
@@ -50,24 +50,24 @@ link = d3.svg.diagonal!
 layout-root.select-all \path.link
   .data links .enter!
   .append \svg:path
-  .attr
+  .attr do
     class : \link
     d     : link
 
 node-group = layout-root.select-all \g.node
   .data nodes .enter!
   .append \svg:g
-  .attr
+  .attr do
     class     : \node
     transform : ({x, y}) -> "translate(#x, #y)"
 
 node-group.append \svg:circle
-  .attr
+  .attr do
     class : \node-dot
     r     : 3
 
 node-group.append \svg:text
-  .attr
+  .attr do
     text-anchor : \start
     dx          : -20
   .text -> it.node

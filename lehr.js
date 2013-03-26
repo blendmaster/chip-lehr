@@ -58,17 +58,30 @@
       width: 600,
       height: 600
     }).append('svg:g').attr({
-      'class': 'container'
-    }).attr('transform', 'translate(50, 50)');
-    link = d3.svg.diagonal();
-    layoutRoot.selectAll('path.link').data(links).enter().append('svg:path').attr('class', 'link').attr('d', link);
-    nodeGroup = layoutRoot.selectAll('g.node').data(nodes).enter().append('svg:g').attr('class', 'node').attr('transform', function(arg$){
-      var x, y;
-      x = arg$.x, y = arg$.y;
-      return "translate(" + x + ", " + y + ")";
+      'class': 'container',
+      transform: 'translate(50, 50)'
     });
-    nodeGroup.append('svg:circle').attr('class', 'node-dot').attr('r', 3);
-    nodeGroup.append('svg:text').attr('text-anchor', 'start').attr('dx', -20).text(function(it){
+    link = d3.svg.diagonal();
+    layoutRoot.selectAll('path.link').data(links).enter().append('svg:path').attr({
+      'class': 'link',
+      d: link
+    });
+    nodeGroup = layoutRoot.selectAll('g.node').data(nodes).enter().append('svg:g').attr({
+      'class': 'node',
+      transform: function(arg$){
+        var x, y;
+        x = arg$.x, y = arg$.y;
+        return "translate(" + x + ", " + y + ")";
+      }
+    });
+    nodeGroup.append('svg:circle').attr({
+      'class': 'node-dot',
+      r: 3
+    });
+    nodeGroup.append('svg:text').attr({
+      textAnchor: 'start',
+      dx: -20
+    }).text(function(it){
       return it.node;
     });
   });
