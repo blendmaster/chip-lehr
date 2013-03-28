@@ -35,3 +35,32 @@
   fill #aaf
   background #aaf
 
+// layout
+.layout-line
+  fill none
+  stroke black
+  stroke-width 4
+
+  &.hovered
+    stroke red
+  &.left-hovered
+    stroke green
+  &.right-hovered
+    stroke blue
+
+.layout-area
+  fill white
+  stroke none
+
+  &.hovered
+    fill pink
+  &.left-hovered
+    fill #afa
+  &.right-hovered
+    fill #aaf
+
+.layout-text
+  text-anchor middle
+  dominant-baseline middle
+  font-size 18pt
+  fill black

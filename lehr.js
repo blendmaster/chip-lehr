@@ -40,7 +40,7 @@
     }
   };
   document.addEventListener('DOMContentLoaded', function(){
-    var tree, nodes, links, i, len$, n, layoutRoot, link, nodeGroup, circles, exprRoot, expr, visit, len1$, setClass, tokens;
+    var tree, nodes, links, i, len$, n, layoutRoot, link, nodeGroup, circles, exprRoot, expr, visit, len1$, setClass, mouseover, mouseout, tokens, len2$;
     tree = d3.layout.tree().size([400, 400]).children(function(it){
       var x0$, that;
       x0$ = [];
@@ -108,25 +108,42 @@
     }
     console.log(circles);
     setClass = function(state){
-      return function(it, myIdx){
+      return function(it){
         var that;
         d3.select(tokens[0][it.postorder]).classed('hovered', state);
         d3.select(circles[0][it.preorder]).classed('hovered', state);
+        d3.select("#l" + it.preorder).classed('hovered', state);
         if (that = it.left) {
           d3.select(tokens[0][that.postorder]).classed('left-hovered', state);
           d3.select(circles[0][that.preorder]).classed('left-hovered', state);
+          d3.select("#l" + that.preorder).classed('left-hovered', state);
         }
         if (that = it.right) {
           d3.select(tokens[0][that.postorder]).classed('right-hovered', state);
-          return d3.select(circles[0][that.preorder]).classed('right-hovered', state);
+          d3.select(circles[0][that.preorder]).classed('right-hovered', state);
+          return d3.select("#l" + that.preorder).classed('right-hovered', state);
         }
       };
     };
+    mouseover = setClass(true);
+    mouseout = setClass(false);
     tokens = exprRoot.selectAll('span.token').data(expr).enter().append('span').attr({
       'class': 'token'
     }).text(function(it){
       return it.node;
-    }).on('mouseover', setClass(true)).on('mouseout', setClass(false));
-    nodeGroup.on('mouseover', setClass(true)).on('mouseout', setClass(false));
+    }).on('mouseover', mouseover).on('mouseout', mouseout);
+    nodeGroup.on('mouseover', mouseover).on('mouseout', mouseout);
+    for (i = 0, len2$ = nodes.length; i < len2$; ++i) {
+      n = nodes[i];
+      (fn$.call(this, document.getElementById("l" + n.preorder), i, n));
+    }
+    function fn$(el, i, n){
+      el.addEventListener('mouseover', function(){
+        return mouseover.call(this, n);
+      });
+      el.addEventListener('mouseout', function(){
+        return mouseout.call(this, n);
+      });
+    }
   });
 }).call(this);

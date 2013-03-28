@@ -97,26 +97,40 @@ for n, i of expr
 console.log circles
 
 # highlight node and its immediate children in both the tree and expression
-set-class = (state) -> (it, my-idx)->
+set-class = (state) -> ->
   d3.select tokens.0[it.postorder] .classed \hovered state
   d3.select circles.0[it.preorder] .classed \hovered state
+  d3.select "\#l#{it.preorder}"    .classed \hovered state
   if it.left
     d3.select tokens.0[that.postorder] .classed \left-hovered state
     d3.select circles.0[that.preorder] .classed \left-hovered state
+    d3.select "\#l#{that.preorder}"    .classed \left-hovered state
   if it.right
     d3.select tokens.0[that.postorder] .classed \right-hovered state
     d3.select circles.0[that.preorder] .classed \right-hovered state
+    d3.select "\#l#{that.preorder}"    .classed \right-hovered state
+
+mouseover = set-class true
+mouseout = set-class false
 
 tokens = expr-root.select-all \span.token
   .data expr .enter!
   .append \span
     .attr class: \token
     .text -> it.node
-    .on \mouseover set-class true
-    .on \mouseout  set-class false
+    .on \mouseover mouseover
+    .on \mouseout  mouseout
 
 # highlight tokens from graph
 node-group
-  .on \mouseover set-class true
-  .on \mouseout  set-class false
+  .on \mouseover mouseover
+  .on \mouseout  mouseout
+
+# XXX hack for manual layout SVG
+for n, i of nodes
+  let el = document.get-element-by-id "l#{n.preorder}"
+    el.add-event-listener \mouseover ->
+      mouseover.call this, n
+    el.add-event-listener \mouseout ->
+      mouseout.call this, n
 

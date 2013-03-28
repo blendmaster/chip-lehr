@@ -30,3 +30,36 @@
   fill: #aaf;
   background: #aaf;
 }
+.layout-line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 4;
+}
+.layout-line.hovered {
+  stroke: #f00;
+}
+.layout-line.left-hovered {
+  stroke: #008000;
+}
+.layout-line.right-hovered {
+  stroke: #00f;
+}
+.layout-area {
+  fill: #fff;
+  stroke: none;
+}
+.layout-area.hovered {
+  fill: #ffc0cb;
+}
+.layout-area.left-hovered {
+  fill: #afa;
+}
+.layout-area.right-hovered {
+  fill: #aaf;
+}
+.layout-text {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 18pt;
+  fill: #000;
+}
