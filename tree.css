@@ -10,11 +10,6 @@
   fill: #fff;
   stroke: #808080;
 }
-.node:hover > .node-dot,
-.hovered {
-  fill: #ffc0cb;
-  stroke: none;
-}
 .node:hover {
   cursor: pointer;
 }
@@ -22,8 +17,16 @@
   padding: 1em;
   font-size: 16pt;
 }
-.token:hover,
-.highlight {
+.hovered {
+  fill: #ffc0cb;
   background: #ffc0cb;
   cursor: pointer;
+}
+.left-hovered {
+  fill: #afa;
+  background: #afa;
+}
+.right-hovered {
+  fill: #aaf;
+  background: #aaf;
 }

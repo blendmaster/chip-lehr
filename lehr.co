@@ -30,7 +30,7 @@ data =
 # adapted from http://blog.pixelingene.com/2011/07/building-a-tree-diagram-in-d3-js/
 <-! document.add-event-listener \DOMContentLoaded
 
-tree = d3.layout.tree!size [500 500] .children ->
+tree = d3.layout.tree!size [400 400] .children ->
   []
     &push that if it.left
     &push that if it.right
@@ -38,8 +38,16 @@ tree = d3.layout.tree!size [500 500] .children ->
 nodes = tree.nodes data
 links = tree.links nodes
 
+# nodes is preordered, so assign index for lookup
+# TODO is there a better way to do this
+for n, i of nodes
+  n.preorder = i
+
+console.log nodes
+console.log data
+
 layout-root = d3.select \body
-  .append \svg:svg .attr width: 600 height: 600
+  .append \svg:svg .attr width: 500 height: 500
   .append \svg:g
     .attr do
       class     : \container
@@ -73,29 +81,42 @@ node-group.append \svg:text
 # draw polish expr
 expr-root = d3.select \body .append \p
 
-# preprder walk
+# postorder walk
 expr = []
 visit = ->
-  expr.push it.node
   visit that if it.left
   visit that if it.right
+  expr.push it
 
 visit data
+
+# add postorder index
+for n, i of expr
+  n.postorder = i
+
+console.log circles
+
+# highlight node and its immediate children in both the tree and expression
+set-class = (state) -> (it, my-idx)->
+  d3.select tokens.0[it.postorder] .classed \hovered state
+  d3.select circles.0[it.preorder] .classed \hovered state
+  if it.left
+    d3.select tokens.0[that.postorder] .classed \left-hovered state
+    d3.select circles.0[that.preorder] .classed \left-hovered state
+  if it.right
+    d3.select tokens.0[that.postorder] .classed \right-hovered state
+    d3.select circles.0[that.preorder] .classed \right-hovered state
 
 tokens = expr-root.select-all \span.token
   .data expr .enter!
   .append \span
     .attr class: \token
-    .text -> it
-    .on \mouseover (_, i) ->
-      d3.select circles.0[i] .classed \hovered true
-    .on \mouseout  (_, i) ->
-      d3.select circles.0[i] .classed \hovered false
+    .text -> it.node
+    .on \mouseover set-class true
+    .on \mouseout  set-class false
 
 # highlight tokens from graph
 node-group
-  .on \mouseover (_, i) ->
-    d3.select tokens.0[i] .classed \highlight true
-  .on \mouseout  (_, i) ->
-    d3.select tokens.0[i] .classed \highlight false
+  .on \mouseover set-class true
+  .on \mouseout  set-class false
 

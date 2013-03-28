@@ -40,8 +40,8 @@
     }
   };
   document.addEventListener('DOMContentLoaded', function(){
-    var tree, nodes, links, layoutRoot, link, nodeGroup, circles, exprRoot, expr, visit, tokens;
-    tree = d3.layout.tree().size([500, 500]).children(function(it){
+    var tree, nodes, links, i, len$, n, layoutRoot, link, nodeGroup, circles, exprRoot, expr, visit, len1$, setClass, tokens;
+    tree = d3.layout.tree().size([400, 400]).children(function(it){
       var x0$, that;
       x0$ = [];
       if (that = it.left) {
@@ -54,9 +54,15 @@
     });
     nodes = tree.nodes(data);
     links = tree.links(nodes);
+    for (i = 0, len$ = nodes.length; i < len$; ++i) {
+      n = nodes[i];
+      n.preorder = i;
+    }
+    console.log(nodes);
+    console.log(data);
     layoutRoot = d3.select('body').append('svg:svg').attr({
-      width: 600,
-      height: 600
+      width: 500,
+      height: 500
     }).append('svg:g').attr({
       'class': 'container',
       transform: 'translate(50, 50)'
@@ -87,28 +93,40 @@
     expr = [];
     visit = function(it){
       var that;
-      expr.push(it.node);
       if (that = it.left) {
         visit(that);
       }
       if (that = it.right) {
-        return visit(that);
+        visit(that);
       }
+      return expr.push(it);
     };
     visit(data);
+    for (i = 0, len1$ = expr.length; i < len1$; ++i) {
+      n = expr[i];
+      n.postorder = i;
+    }
+    console.log(circles);
+    setClass = function(state){
+      return function(it, myIdx){
+        var that;
+        d3.select(tokens[0][it.postorder]).classed('hovered', state);
+        d3.select(circles[0][it.preorder]).classed('hovered', state);
+        if (that = it.left) {
+          d3.select(tokens[0][that.postorder]).classed('left-hovered', state);
+          d3.select(circles[0][that.preorder]).classed('left-hovered', state);
+        }
+        if (that = it.right) {
+          d3.select(tokens[0][that.postorder]).classed('right-hovered', state);
+          return d3.select(circles[0][that.preorder]).classed('right-hovered', state);
+        }
+      };
+    };
     tokens = exprRoot.selectAll('span.token').data(expr).enter().append('span').attr({
       'class': 'token'
     }).text(function(it){
-      return it;
-    }).on('mouseover', function(_, i){
-      return d3.select(circles[0][i]).classed('hovered', true);
-    }).on('mouseout', function(_, i){
-      return d3.select(circles[0][i]).classed('hovered', false);
-    });
-    nodeGroup.on('mouseover', function(_, i){
-      return d3.select(tokens[0][i]).classed('highlight', true);
-    }).on('mouseout', function(_, i){
-      return d3.select(tokens[0][i]).classed('highlight', false);
-    });
+      return it.node;
+    }).on('mouseover', setClass(true)).on('mouseout', setClass(false));
+    nodeGroup.on('mouseover', setClass(true)).on('mouseout', setClass(false));
   });
 }).call(this);

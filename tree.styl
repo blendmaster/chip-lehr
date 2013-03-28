@@ -11,10 +11,8 @@
   fill white
   stroke gray
 
-.node:hover > .node-dot, .hovered
-  fill pink
-  stroke none
-
+// entire node hover so mousing over the text in the middle won't change back
+// to a regular cursor
 .node:hover
   cursor pointer
 
@@ -24,6 +22,16 @@
   padding 1em
   font-size 16pt
 
-.token:hover, .highlight
+.hovered
+  fill pink
   background pink
   cursor pointer
+
+.left-hovered
+  fill #afa
+  background #afa
+
+.right-hovered
+  fill #aaf
+  background #aaf
+
