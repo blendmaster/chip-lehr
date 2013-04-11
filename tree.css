@@ -1,3 +1,6 @@
+section {
+  display: inline-block;
+}
 .link {
   fill: none;
   stroke: #808080;

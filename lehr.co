@@ -46,7 +46,7 @@ for n, i of nodes
 console.log nodes
 console.log data
 
-layout-root = d3.select \body
+layout-root = d3.select \#slicing-tree
   .append \svg:svg .attr width: 500 height: 500
   .append \svg:g
     .attr do
@@ -79,7 +79,7 @@ node-group.append \svg:text
   .text -> it.node
 
 # draw polish expr
-expr-root = d3.select \body .append \p
+expr-root = d3.select \#polish-expression .append \p
 
 # postorder walk
 expr = []

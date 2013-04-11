@@ -60,7 +60,7 @@
     }
     console.log(nodes);
     console.log(data);
-    layoutRoot = d3.select('body').append('svg:svg').attr({
+    layoutRoot = d3.select('#slicing-tree').append('svg:svg').attr({
       width: 500,
       height: 500
     }).append('svg:g').attr({
@@ -89,7 +89,7 @@
     }).text(function(it){
       return it.node;
     });
-    exprRoot = d3.select('body').append('p');
+    exprRoot = d3.select('#polish-expression').append('p');
     expr = [];
     visit = function(it){
       var that;
