@@ -1,50 +1,161 @@
-# preoder of data on slide 7 of
-# http://users.eecs.northwestern.edu/~haizhou/357/lec3.pdf
-data =
-  node: \V
-  left:
-    node: \H
-    left:
-      node: \V
-      left:
-        node: \H
-        left:
-          node: 1
-        right:
-          node: 6
-      right:
-        node: 2
-    right:
-      node: \V
-      left:
-        node: 7
-      right:
-        node: 5
-  right:
-    node: \H
-    left:
-      node: 3
-    right:
-      node: 4
+# width, height
+chips =
+  * width: 10 height: 10
+  * width:  5 height: 12
+  * width:  3 height:  2
+  * width:  5 height:  3
+  * width:  8 height:  8
+  * width:  3 height:  5
+  * width:  6 height:  6
+  * width:  1 height:  1
+
+# per section 7 in the paper, start with horizontal layout, recursively
+function initial-layout chips, n = 0
+  node: \H
+  children:
+    * node: n
+      width: chips.0.width * 10
+      height: chips.0.height * 10
+    * if chips.length is 2
+        node:   n + 1
+        width:  chips.1.width * 10
+        height: chips.1.height * 10
+      else
+        initial-layout chips.slice(1), n + 1
+
+slicing-layout = initial-layout chips
+
+# mix it up a little
+op = H: \V V: \H
+init = slicing-layout.node
+current = slicing-layout
+while current = current.children?1
+  init = op[init]
+  console.log init
+  current.node = init unless current.node is not \H and current.node is not \V
+
+SVGL = -> document.createElementNS \http://www.w3.org/2000/svg it
+
+width = height = 500
+
+slice-direction = H: \height, V: \width
+opposite = width: \height height: \width
+line-dimension = width: \x height: \y
+opp-dimension = x: \y y: \x
+
+# expand leaves to rectangles, and decorate branch nodes with size fitted to
+# their children
+function calculate-size layout
+  if layout.children?
+    left  = calculate-size layout.children.0
+    right = calculate-size layout.children.1
+
+    dir = slice-direction[layout.node]
+    opp = opposite[dir]
+
+    fitted = Math.max left[dir], right[dir]
+
+    # expand both children
+    set-size left,  dir, fitted
+    set-size right, dir, fitted
+
+    # fitted along slice direction, summed in other
+    layout <<<
+      (dir): fitted
+      (opp): left[opp] + right[opp]
+  else
+    layout
+
+function set-size layout, dir, value
+  layout[dir] = value
+  if slice-direction[layout.node] is dir and layout.children
+    set-size that.0, dir, value
+    set-size that.1, dir, value
+
+slicing-layout = calculate-size slicing-layout
+
+console.log slicing-layout
+
+function slicing-rectangle ({children}: layout, position = x: 0, y: 0)
+  SVGL \svg
+    &setAttribute \class "layout-slice layout-slice-#{layout.node}"
+    #&id = "rect-#{layout.node}"
+
+    &setAttribute \width layout.width
+    &setAttribute \height layout.height
+
+    &setAttribute \x position.x
+    &setAttribute \y position.y
+
+    if children?
+      [left, right] = children
+
+      dir = slice-direction[layout.node]
+      opp = opposite[dir]
+
+      line-dim = line-dimension[dir]
+      line-opp = opp-dimension[line-dim]
+
+      left-rect  = slicing-rectangle left
+      right-rect = slicing-rectangle right,
+                                     (line-dim): 0
+                                     (line-opp): left[opp]
+
+      &appendChild left-rect
+      &appendChild right-rect
+
+      &appendChild with SVGL \line
+        &setAttribute \class "layout-line layout-line-#{layout.node}"
+        # &id = "what"
+
+        # stretches across group
+        &setAttribute line-dim + \1 0
+        &setAttribute line-dim + \2 layout[dir]
+
+        # starting after left node
+        &setAttribute line-opp + \1 left[opp]
+        &setAttribute line-opp + \2 left[opp]
+    else
+      &appendChild with SVGL \rect
+        &setAttribute \class \layout-rect
+        &setAttribute \width \100%
+        &setAttribute \height \100%
+      &appendChild with SVGL \text
+        &setAttribute \class \layout-text
+        &setAttribute \x layout.width / 2
+        &setAttribute \y layout.height / 2
+        &textContent = layout.node
+
+function labeled-slicing-rectangle idx, size
+  SVGL \g
+    &id = "l#idx"
+    &appendChild with SVGL \rect
+      &className = \layout-rect
+
+      & <<< size
+
+      # center rectangle in group
+      &x = "-#{&width / 2}"
+      &y = "-#{&height / 2}"
+
+    &appendChild with SVGL \text
+      &className = \layout-text
+      &textContent = "#idx"
 
 # adapted from http://blog.pixelingene.com/2011/07/building-a-tree-diagram-in-d3-js/
 <-! document.add-event-listener \DOMContentLoaded
 
-tree = d3.layout.tree!size [400 400] .children ->
-  []
-    &push that if it.left
-    &push that if it.right
+document.getElementById \slicing-rectangle
+  .appendChild slicing-rectangle slicing-layout
 
-nodes = tree.nodes data
+tree = d3.layout.tree!size [400 400]
+nodes = tree.nodes slicing-layout
 links = tree.links nodes
 
 # nodes is preordered, so assign index for lookup
 # TODO is there a better way to do this
 for n, i of nodes
   n.preorder = i
-
-console.log nodes
-console.log data
 
 layout-root = d3.select \#slicing-tree
   .append \svg:svg .attr width: 500 height: 500
@@ -84,31 +195,28 @@ expr-root = d3.select \#polish-expression .append \p
 # postorder walk
 expr = []
 visit = ->
-  visit that if it.left
-  visit that if it.right
+  if it.children then for that => visit &
   expr.push it
 
-visit data
+visit slicing-layout
 
 # add postorder index
 for n, i of expr
   n.postorder = i
 
-console.log circles
-
 # highlight node and its immediate children in both the tree and expression
 set-class = (state) -> ->
   d3.select tokens.0[it.postorder] .classed \hovered state
   d3.select circles.0[it.preorder] .classed \hovered state
-  d3.select "\#l#{it.preorder}"    .classed \hovered state
-  if it.left
+  #d3.select "\#l#{it.preorder}"    .classed \hovered state
+  if it.children?0
     d3.select tokens.0[that.postorder] .classed \left-hovered state
     d3.select circles.0[that.preorder] .classed \left-hovered state
-    d3.select "\#l#{that.preorder}"    .classed \left-hovered state
-  if it.right
+    #d3.select "\#l#{that.preorder}"    .classed \left-hovered state
+  if it.children?1
     d3.select tokens.0[that.postorder] .classed \right-hovered state
     d3.select circles.0[that.preorder] .classed \right-hovered state
-    d3.select "\#l#{that.preorder}"    .classed \right-hovered state
+    #d3.select "\#l#{that.preorder}"    .classed \right-hovered state
 
 mouseover = set-class true
 mouseout = set-class false
@@ -126,11 +234,11 @@ node-group
   .on \mouseover mouseover
   .on \mouseout  mouseout
 
-# XXX hack for manual layout SVG
-for n, i of nodes
-  let el = document.get-element-by-id "l#{n.preorder}"
-    el.add-event-listener \mouseover ->
-      mouseover.call this, n
-    el.add-event-listener \mouseout ->
-      mouseout.call this, n
+## XXX hack for manual layout SVG
+#for n, i of nodes
+  #let el = document.get-element-by-id "l#{n.preorder}"
+    #el.add-event-listener \mouseover ->
+      #mouseover.call this, n
+    #el.add-event-listener \mouseout ->
+      #mouseout.call this, n
 

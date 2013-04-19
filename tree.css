@@ -47,6 +47,10 @@ section {
 .layout-line.right-hovered {
   stroke: #00f;
 }
+.layout-rect {
+  fill: #f00;
+  stroke: none;
+}
 .layout-area {
   fill: #fff;
   stroke: none;
