@@ -34,12 +34,14 @@ function initialLayout(chips, n){
       {
         node: n,
         width: chips[0].width * 10,
-        height: chips[0].height * 10
+        height: chips[0].height * 10,
+        chip: chips[0]
       }, chips.length === 2
         ? {
           node: n + 1,
           width: chips[1].width * 10,
-          height: chips[1].height * 10
+          height: chips[1].height * 10,
+          chip: chips[1]
         }
         : initialLayout(chips.slice(1), n + 1)
     ]
@@ -104,7 +106,7 @@ function setSize(layout, dir, value){
 slicingLayout = calculateSize(slicingLayout);
 console.log(slicingLayout);
 function slicingRectangle(layout, position){
-  var children, x0$, left, right, dir, opp, lineDim, lineOpp, leftRect, rightRect, ref$, x1$, x2$, x3$;
+  var children, x0$, left, right, dir, opp, lineDim, lineOpp, leftRect, rightRect, ref$, x1$, x2$, x3$, x4$;
   children = layout.children;
   position == null && (position = {
     x: 0,
@@ -129,16 +131,9 @@ function slicingRectangle(layout, position){
     x0$.appendChild((x1$ = SVGL('line'), x1$.setAttribute('class', "layout-line layout-line-" + layout.node), x1$.setAttribute('id', "l" + layout.preorder), x1$.setAttribute(lineDim + '1', 0), x1$.setAttribute(lineDim + '2', layout[dir]), x1$.setAttribute(lineOpp + '1', left[opp]), x1$.setAttribute(lineOpp + '2', left[opp]), x1$));
   } else {
     x0$.appendChild((x2$ = SVGL('rect'), x2$.setAttribute('id', "l" + layout.preorder), x2$.setAttribute('class', 'layout-rect'), x2$.setAttribute('width', '100%'), x2$.setAttribute('height', '100%'), x2$));
-    x0$.appendChild((x3$ = SVGL('text'), x3$.setAttribute('class', 'layout-text'), x3$.setAttribute('x', layout.width / 2), x3$.setAttribute('y', layout.height / 2), x3$.textContent = layout.node, x3$));
+    x0$.appendChild((x3$ = SVGL('rect'), x3$.setAttribute('id', "chip" + layout.node), x3$.setAttribute('class', 'chip-rect'), x3$.setAttribute('width', layout.chip.width), x3$.setAttribute('height', layout.chip.height), x3$.setAttribute('x', layout.width / 2 - layout.chip.width), x3$.setAttribute('y', layout.chip.height), x3$));
+    x0$.appendChild((x4$ = SVGL('text'), x4$.setAttribute('class', 'layout-text'), x4$.setAttribute('x', layout.width / 2), x4$.setAttribute('y', layout.height / 2), x4$.textContent = layout.node, x4$));
   }
-  return x0$;
-}
-function labeledSlicingRectangle(idx, size){
-  var x0$, x1$, x2$;
-  x0$ = SVGL('g');
-  x0$.id = "l" + idx;
-  x0$.appendChild((x1$ = SVGL('rect'), x1$.className = 'layout-rect', import$(x1$, size), x1$.x = "-" + x1$.width / 2, x1$.y = "-" + x1$.height / 2, x1$));
-  x0$.appendChild((x2$ = SVGL('text'), x2$.className = 'layout-text', x2$.textContent = idx + "", x2$));
   return x0$;
 }
 expr = [];
@@ -241,8 +236,3 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 });
-function import$(obj, src){
-  var own = {}.hasOwnProperty;
-  for (var key in src) if (own.call(src, key)) obj[key] = src[key];
-  return obj;
-}
