@@ -1,4 +1,4 @@
-var chips, slicingLayout, op, init, current, ref$, SVGL, width, height, sliceDirection, opposite, lineDimension, oppDimension;
+var chips, slicingLayout, op, init, current, ref$, SVGL, width, height, sliceDirection, opposite, lineDimension, oppDimension, expr, visit, i, len$, n, tree, nodes, links, len1$;
 chips = [
   {
     width: 10,
@@ -54,7 +54,6 @@ init = slicingLayout.node;
 current = slicingLayout;
 while (current = (ref$ = current.children) != null ? ref$[1] : void 8) {
   init = op[init];
-  console.log(init);
   if (!(current.node !== 'H' && current.node !== 'V')) {
     current.node = init;
   }
@@ -64,8 +63,8 @@ SVGL = function(it){
 };
 width = height = 500;
 sliceDirection = {
-  H: 'height',
-  V: 'width'
+  H: 'width',
+  V: 'height'
 };
 opposite = {
   width: 'height',
@@ -127,9 +126,9 @@ function slicingRectangle(layout, position){
     rightRect = slicingRectangle(right, (ref$ = {}, ref$[lineDim] = 0, ref$[lineOpp] = left[opp], ref$));
     x0$.appendChild(leftRect);
     x0$.appendChild(rightRect);
-    x0$.appendChild((x1$ = SVGL('line'), x1$.setAttribute('class', "layout-line layout-line-" + layout.node), x1$.setAttribute(lineDim + '1', 0), x1$.setAttribute(lineDim + '2', layout[dir]), x1$.setAttribute(lineOpp + '1', left[opp]), x1$.setAttribute(lineOpp + '2', left[opp]), x1$));
+    x0$.appendChild((x1$ = SVGL('line'), x1$.setAttribute('class', "layout-line layout-line-" + layout.node), x1$.setAttribute('id', "l" + layout.preorder), x1$.setAttribute(lineDim + '1', 0), x1$.setAttribute(lineDim + '2', layout[dir]), x1$.setAttribute(lineOpp + '1', left[opp]), x1$.setAttribute(lineOpp + '2', left[opp]), x1$));
   } else {
-    x0$.appendChild((x2$ = SVGL('rect'), x2$.setAttribute('class', 'layout-rect'), x2$.setAttribute('width', '100%'), x2$.setAttribute('height', '100%'), x2$));
+    x0$.appendChild((x2$ = SVGL('rect'), x2$.setAttribute('id', "l" + layout.preorder), x2$.setAttribute('class', 'layout-rect'), x2$.setAttribute('width', '100%'), x2$.setAttribute('height', '100%'), x2$));
     x0$.appendChild((x3$ = SVGL('text'), x3$.setAttribute('class', 'layout-text'), x3$.setAttribute('x', layout.width / 2), x3$.setAttribute('y', layout.height / 2), x3$.textContent = layout.node, x3$));
   }
   return x0$;
@@ -142,16 +141,32 @@ function labeledSlicingRectangle(idx, size){
   x0$.appendChild((x2$ = SVGL('text'), x2$.className = 'layout-text', x2$.textContent = idx + "", x2$));
   return x0$;
 }
-document.addEventListener('DOMContentLoaded', function(){
-  var tree, nodes, links, i, len$, n, layoutRoot, link, nodeGroup, circles, exprRoot, expr, visit, len1$, setClass, mouseover, mouseout, tokens;
-  document.getElementById('slicing-rectangle').appendChild(slicingRectangle(slicingLayout));
-  tree = d3.layout.tree().size([400, 400]);
-  nodes = tree.nodes(slicingLayout);
-  links = tree.links(nodes);
-  for (i = 0, len$ = nodes.length; i < len$; ++i) {
-    n = nodes[i];
-    n.preorder = i;
+expr = [];
+visit = function(it){
+  var that, i$, x0$, len$;
+  if (that = it.children) {
+    for (i$ = 0, len$ = that.length; i$ < len$; ++i$) {
+      x0$ = that[i$];
+      visit(x0$);
+    }
   }
+  return expr.push(it);
+};
+visit(slicingLayout);
+for (i = 0, len$ = expr.length; i < len$; ++i) {
+  n = expr[i];
+  n.postorder = i;
+}
+tree = d3.layout.tree().size([400, 400]);
+nodes = tree.nodes(slicingLayout);
+links = tree.links(nodes);
+for (i = 0, len1$ = nodes.length; i < len1$; ++i) {
+  n = nodes[i];
+  n.preorder = i;
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var layoutRoot, link, nodeGroup, circles, exprRoot, highlight, setClass, highlightTree, mouseover, mouseout, tokens, i, ref$, len$, n;
+  document.getElementById('slicing-rectangle').appendChild(slicingRectangle(slicingLayout));
   layoutRoot = d3.select('#slicing-tree').append('svg:svg').attr({
     width: 500,
     height: 500
@@ -182,36 +197,28 @@ document.addEventListener('DOMContentLoaded', function(){
     return it.node;
   });
   exprRoot = d3.select('#polish-expression').append('p');
-  expr = [];
-  visit = function(it){
-    var that, i$, x0$, len$;
-    if (that = it.children) {
-      for (i$ = 0, len$ = that.length; i$ < len$; ++i$) {
-        x0$ = that[i$];
-        visit(x0$);
-      }
-    }
-    return expr.push(it);
+  highlight = function(it, className, state){
+    d3.select(tokens[0][it.postorder]).classed(className, state);
+    d3.select(circles[0][it.preorder]).classed(className, state);
+    return d3.select("#l" + it.preorder).classed(className, state);
   };
-  visit(slicingLayout);
-  for (i = 0, len1$ = expr.length; i < len1$; ++i) {
-    n = expr[i];
-    n.postorder = i;
-  }
   setClass = function(state){
     return function(it){
-      var that, ref$, ref1$;
-      d3.select(tokens[0][it.postorder]).classed('hovered', state);
-      d3.select(circles[0][it.preorder]).classed('hovered', state);
-      if (that = (ref$ = it.children) != null ? ref$[0] : void 8) {
-        d3.select(tokens[0][that.postorder]).classed('left-hovered', state);
-        d3.select(circles[0][that.preorder]).classed('left-hovered', state);
-      }
-      if (that = (ref1$ = it.children) != null ? ref1$[1] : void 8) {
-        d3.select(tokens[0][that.postorder]).classed('right-hovered', state);
-        return d3.select(circles[0][that.preorder]).classed('right-hovered', state);
+      var that;
+      highlight(it, 'hovered', state);
+      if (that = it.children) {
+        highlightTree(that[0], 'left-hovered', state);
+        return highlightTree(that[1], 'right-hovered', state);
       }
     };
+  };
+  highlightTree = function(root, className, state){
+    var that;
+    highlight(root, className, state);
+    if (that = root.children) {
+      highlightTree(that[0], className, state);
+      return highlightTree(that[1], className, state);
+    }
   };
   mouseover = setClass(true);
   mouseout = setClass(false);
@@ -221,6 +228,18 @@ document.addEventListener('DOMContentLoaded', function(){
     return it.node;
   }).on('mouseover', mouseover).on('mouseout', mouseout);
   nodeGroup.on('mouseover', mouseover).on('mouseout', mouseout);
+  for (i = 0, len$ = (ref$ = nodes).length; i < len$; ++i) {
+    n = ref$[i];
+    (fn$.call(this, document.getElementById("l" + n.preorder), i, n));
+  }
+  function fn$(el, i, n){
+    el.addEventListener('mouseover', function(){
+      return mouseover.call(this, n);
+    });
+    el.addEventListener('mouseout', function(){
+      return mouseout.call(this, n);
+    });
+  }
 });
 function import$(obj, src){
   var own = {}.hasOwnProperty;

@@ -52,10 +52,6 @@ section
     stroke blue
 
 .layout-rect
-  fill red
-  stroke none
-
-.layout-area
   fill white
   stroke none
 
@@ -66,8 +62,15 @@ section
   &.right-hovered
     fill #aaf
 
+.layout-area
+  fill white
+  stroke none
+
 .layout-text
   text-anchor middle
   dominant-baseline middle
   font-size 18pt
   fill black
+
+  // pass through mouseover
+  pointer-events none

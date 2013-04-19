@@ -48,25 +48,26 @@ section {
   stroke: #00f;
 }
 .layout-rect {
-  fill: #f00;
+  fill: #fff;
   stroke: none;
+}
+.layout-rect.hovered {
+  fill: #ffc0cb;
+}
+.layout-rect.left-hovered {
+  fill: #afa;
+}
+.layout-rect.right-hovered {
+  fill: #aaf;
 }
 .layout-area {
   fill: #fff;
   stroke: none;
-}
-.layout-area.hovered {
-  fill: #ffc0cb;
-}
-.layout-area.left-hovered {
-  fill: #afa;
-}
-.layout-area.right-hovered {
-  fill: #aaf;
 }
 .layout-text {
   text-anchor: middle;
   dominant-baseline: middle;
   font-size: 18pt;
   fill: #000;
+  pointer-events: none;
 }

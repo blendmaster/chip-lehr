@@ -31,14 +31,13 @@ init = slicing-layout.node
 current = slicing-layout
 while current = current.children?1
   init = op[init]
-  console.log init
   current.node = init unless current.node is not \H and current.node is not \V
 
 SVGL = -> document.createElementNS \http://www.w3.org/2000/svg it
 
 width = height = 500
 
-slice-direction = H: \height, V: \width
+slice-direction = H: \width, V: \height
 opposite = width: \height height: \width
 line-dimension = width: \x height: \y
 opp-dimension = x: \y y: \x
@@ -79,7 +78,6 @@ console.log slicing-layout
 function slicing-rectangle ({children}: layout, position = x: 0, y: 0)
   SVGL \svg
     &setAttribute \class "layout-slice layout-slice-#{layout.node}"
-    #&id = "rect-#{layout.node}"
 
     &setAttribute \width layout.width
     &setAttribute \height layout.height
@@ -106,7 +104,7 @@ function slicing-rectangle ({children}: layout, position = x: 0, y: 0)
 
       &appendChild with SVGL \line
         &setAttribute \class "layout-line layout-line-#{layout.node}"
-        # &id = "what"
+        &setAttribute \id "l#{layout.preorder}"
 
         # stretches across group
         &setAttribute line-dim + \1 0
@@ -117,6 +115,7 @@ function slicing-rectangle ({children}: layout, position = x: 0, y: 0)
         &setAttribute line-opp + \2 left[opp]
     else
       &appendChild with SVGL \rect
+        &setAttribute \id "l#{layout.preorder}"
         &setAttribute \class \layout-rect
         &setAttribute \width \100%
         &setAttribute \height \100%
@@ -142,11 +141,17 @@ function labeled-slicing-rectangle idx, size
       &className = \layout-text
       &textContent = "#idx"
 
-# adapted from http://blog.pixelingene.com/2011/07/building-a-tree-diagram-in-d3-js/
-<-! document.add-event-listener \DOMContentLoaded
+# postorder walk
+expr = []
+visit = ->
+  if it.children then for that => visit &
+  expr.push it
 
-document.getElementById \slicing-rectangle
-  .appendChild slicing-rectangle slicing-layout
+visit slicing-layout
+
+# decorate postorder index
+for n, i of expr
+  n.postorder = i
 
 tree = d3.layout.tree!size [400 400]
 nodes = tree.nodes slicing-layout
@@ -156,6 +161,12 @@ links = tree.links nodes
 # TODO is there a better way to do this
 for n, i of nodes
   n.preorder = i
+
+# adapted from http://blog.pixelingene.com/2011/07/building-a-tree-diagram-in-d3-js/
+<-! document.add-event-listener \DOMContentLoaded
+
+document.getElementById \slicing-rectangle
+  .appendChild slicing-rectangle slicing-layout
 
 layout-root = d3.select \#slicing-tree
   .append \svg:svg .attr width: 500 height: 500
@@ -192,31 +203,23 @@ node-group.append \svg:text
 # draw polish expr
 expr-root = d3.select \#polish-expression .append \p
 
-# postorder walk
-expr = []
-visit = ->
-  if it.children then for that => visit &
-  expr.push it
+highlight = (it, className, state)->
+  d3.select tokens.0[it.postorder] .classed className, state
+  d3.select circles.0[it.preorder] .classed className, state
+  d3.select "\#l#{it.preorder}"    .classed className, state
 
-visit slicing-layout
-
-# add postorder index
-for n, i of expr
-  n.postorder = i
-
-# highlight node and its immediate children in both the tree and expression
+# highlight node and its left and right subtree in both the tree and expression
 set-class = (state) -> ->
-  d3.select tokens.0[it.postorder] .classed \hovered state
-  d3.select circles.0[it.preorder] .classed \hovered state
-  #d3.select "\#l#{it.preorder}"    .classed \hovered state
-  if it.children?0
-    d3.select tokens.0[that.postorder] .classed \left-hovered state
-    d3.select circles.0[that.preorder] .classed \left-hovered state
-    #d3.select "\#l#{that.preorder}"    .classed \left-hovered state
-  if it.children?1
-    d3.select tokens.0[that.postorder] .classed \right-hovered state
-    d3.select circles.0[that.preorder] .classed \right-hovered state
-    #d3.select "\#l#{that.preorder}"    .classed \right-hovered state
+  highlight it, \hovered state
+  if it.children
+    highlight-tree that.0, \left-hovered state
+    highlight-tree that.1, \right-hovered state
+
+highlight-tree = (root, className, state) ->
+  highlight root, className, state
+  if root.children
+    highlight-tree that.0, className, state
+    highlight-tree that.1, className, state
 
 mouseover = set-class true
 mouseout = set-class false
@@ -234,11 +237,10 @@ node-group
   .on \mouseover mouseover
   .on \mouseout  mouseout
 
-## XXX hack for manual layout SVG
-#for n, i of nodes
-  #let el = document.get-element-by-id "l#{n.preorder}"
-    #el.add-event-listener \mouseover ->
-      #mouseover.call this, n
-    #el.add-event-listener \mouseout ->
-      #mouseout.call this, n
+for n, i of nodes
+  let el = document.get-element-by-id "l#{n.preorder}"
+    el.add-event-listener \mouseover ->
+      mouseover.call this, n
+    el.add-event-listener \mouseout ->
+      mouseout.call this, n
 
