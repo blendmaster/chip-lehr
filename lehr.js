@@ -1,18 +1,15 @@
-var oldExpr, expr, move, R, P, layoutRoot, rectRoot, lineRoot, exprRoot, treeRoot, linkRoot, nodeRoot, slice$ = [].slice;
-function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot){
-  var preordered, postordered, i$, x0$, len$, i, len1$, n, len2$, slicingSvgLayout, maxDim, scale, rectangles, x1$, x2$, group, x3$, lines, x4$, tree, nodes, links, link, linkNodes, x5$, nodeGroup, x6$, g, x7$, circles, tokens, x8$, x9$, x10$, highlight, setClass, highlightTree, mouseover, mouseout;
+var oldExpr, expr, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, move, R, P, slice$ = [].slice;
+function displayLayout(){
+  var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
+  dNumber(expr);
+  layout = treeFrom(expr);
   preordered = preorder(layout);
   postordered = postorder(layout);
-  dNumber(postordered);
-  for (i$ = 0, len$ = preordered.length; i$ < len$; ++i$) {
-    x0$ = preordered[i$];
-    delete x0$.parent;
-  }
-  for (i = 0, len1$ = postordered.length; i < len1$; ++i) {
+  for (i = 0, len$ = postordered.length; i < len$; ++i) {
     n = postordered[i];
     n.postorder = i;
   }
-  for (i = 0, len2$ = preordered.length; i < len2$; ++i) {
+  for (i = 0, len1$ = preordered.length; i < len1$; ++i) {
     n = preordered[i];
     n.preorder = i;
   }
@@ -24,21 +21,21 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
   rectangles = rectRoot.selectAll('g.layout-area').data(slicingSvgLayout.rectangles, function(it){
     return it.id;
   });
-  x1$ = rectangles;
-  x2$ = x1$.enter();
-  group = x2$.append('svg:g').attr('class', 'layout-area').attr('transform', "translate(0,0)");
-  x3$ = group;
-  x3$.append('svg:rect').attr('class', 'layout-rect');
-  x3$.append('svg:rect').attr('class', 'layout-chip');
-  x3$.append('svg:text').attr('class', 'layout-text');
-  x1$.transition().duration(750).attr({
+  x0$ = rectangles;
+  x1$ = x0$.enter();
+  group = x1$.append('svg:g').attr('class', 'layout-area').attr('transform', "translate(0,0)");
+  x2$ = group;
+  x2$.append('svg:rect').attr('class', 'layout-rect');
+  x2$.append('svg:rect').attr('class', 'layout-chip');
+  x2$.append('svg:text').attr('class', 'layout-text');
+  x0$.transition().duration(750).attr({
     transform: function(arg$){
       var rectX, rectY;
       rectX = arg$.rectX, rectY = arg$.rectY;
       return "translate(" + 10 * rectX + ", " + 10 * rectY + ")";
     }
   });
-  x1$.select('.layout-rect').attr('id', function(it){
+  x0$.select('.layout-rect').attr('id', function(it){
     return "l" + it.preorder;
   }).classed('left-hovered', false).classed('right-hovered', false).transition().duration(750).attr({
     width: function(it){
@@ -48,7 +45,7 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
       return it.height * 10;
     }
   });
-  x1$.select('.layout-chip').transition().duration(750).attr({
+  x0$.select('.layout-chip').transition().duration(750).attr({
     width: function(it){
       return it.chip.width * 10;
     },
@@ -62,7 +59,7 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
       return (it.height * 10 - it.chip.height * 10) / 2;
     }
   });
-  x1$.select('.layout-text').text(function(it){
+  x0$.select('.layout-text').text(function(it){
     return it.node;
   }).transition().duration(750).style('font-size', function(it){
     return Math.max(8, Math.min(36, it.height * 10)) + "px";
@@ -77,14 +74,14 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
   lines = lineRoot.selectAll('line.layout-line').data(slicingSvgLayout.sliceLines, function(it){
     return it.id;
   });
-  x4$ = lines;
-  x4$.enter().append('svg:line').attr('class', 'layout-line');
-  x4$.attr({
+  x3$ = lines;
+  x3$.enter().append('svg:line').attr('class', 'layout-line');
+  x3$.attr({
     id: function(it){
       return "l" + it.preorder;
     }
   });
-  x4$.transition().duration(750).attr({
+  x3$.transition().duration(750).attr({
     x1: function(it){
       return it.x1 * 10;
     },
@@ -112,24 +109,24 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
       return t + "" + s;
     }
   });
-  x5$ = linkNodes;
-  x5$.exit().transition().duration(750).style('stroke-opacity', 0).remove();
-  x5$.enter().append('svg:path').attr('class', 'link').style('stroke-opacity', 0);
-  x5$.transition().duration(750).attr('d', link).style('stroke-opacity', 1);
+  x4$ = linkNodes;
+  x4$.exit().transition().duration(750).style('stroke-opacity', 0).remove();
+  x4$.enter().append('svg:path').attr('class', 'link').style('stroke-opacity', 0);
+  x4$.transition().duration(750).attr('d', link).style('stroke-opacity', 1);
   nodeGroup = nodeRoot.selectAll('g.node').data(nodes, function(it){
     return it.id;
   });
-  x6$ = nodeGroup.enter();
-  g = x6$.append('svg:g').attr({
+  x5$ = nodeGroup.enter();
+  g = x5$.append('svg:g').attr({
     'class': 'node',
     transform: 'translate(0,0)'
   });
-  x7$ = g;
-  x7$.append('svg:circle').attr({
+  x6$ = g;
+  x6$.append('svg:circle').attr({
     'class': 'node-dot',
     r: 20
   });
-  x7$.append('svg:text').attr({
+  x6$.append('svg:text').attr({
     'class': 'node-text'
   });
   nodeGroup.select('.node-text').text(function(it){
@@ -141,40 +138,39 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
     return "translate(" + x + ", " + y + ")";
   });
   circles = nodeGroup.select('.node-dot').classed('left-hovered', false).classed('right-hovered', false);
-  expr = postordered;
   exprRoot.attr({
-    width: postordered.length * 50,
+    width: expr.length * 50,
     height: 100
   });
-  tokens = exprRoot.selectAll('.token').data(expr, function(it){
+  tokens = exprRoot.selectAll('.token').data(postordered, function(it){
     return it.id;
   });
-  x8$ = tokens;
-  x9$ = x8$.enter();
-  g = x9$.append('svg:g').attr('class', 'token').attr('transform', 'translate(0,0)');
-  x10$ = g;
-  x10$.append('svg:rect').attr({
+  x7$ = tokens;
+  x8$ = x7$.enter();
+  g = x8$.append('svg:g').attr('class', 'token').attr('transform', 'translate(0,0)');
+  x9$ = g;
+  x9$.append('svg:rect').attr({
     'class': 'token-rect',
     width: 50,
     height: 50,
     x: -25,
     y: -25
   });
-  x10$.append('text').attr({
+  x9$.append('text').attr({
     'class': 'token-text'
   });
-  x8$.select('.token-text').text(function(it){
+  x7$.select('.token-text').text(function(it){
     return it.node;
   });
-  x8$.classed('left-hovered', false);
-  x8$.classed('right-hovered', false);
-  x8$.transition().duration(750).attr({
+  x7$.classed('left-hovered', false);
+  x7$.classed('right-hovered', false);
+  x7$.transition().duration(750).attr({
     transform: function(_, i){
       return "translate(" + (i * 50 + 25) + ", 50)";
     }
   });
   highlight = function(it, className, state){
-    d3.select(tokens[0][it.postorder]).classed(className, state);
+    d3.select(tokens[0][it.idx]).classed(className, state);
     d3.select(circles[0][it.preorder]).classed(className, state);
     return d3.select("#l" + it.preorder).classed(className, state);
   };
@@ -202,22 +198,23 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
   nodeGroup.on('mouseover', mouseover).on('mouseout', mouseout);
   rectangles.on('mouseover', mouseover).on('mouseout', mouseout);
   lines.on('mouseover', mouseover).on('mouseout', mouseout);
-  tokens.on('click', function(it){
-    var next, newExpr, last, current, len, i, to$, to1$, layout;
-    next = expr[it.postorder + 1];
+  tokens.on('click', function(node){
+    var it, next, newExpr, last, current, len, i, to$, to1$;
+    it = expr[node.idx];
+    next = expr[it.idx + 1];
     if (it.operand && (next != null && next.operand)) {
       newExpr = move[0](expr, it, next);
     } else if (it.operator) {
       if (next != null && (next != null && next.operand) && valid(expr, it, next)) {
         newExpr = move[2](expr, it, next);
       } else {
-        last = expr[it.postorder - 1];
+        last = expr[it.idx - 1];
         if (!(last != null && last.operand)) {
           return;
         }
         current = it.node;
         len = 0;
-        for (i = it.postorder + 1, to$ = expr.length; i < to$; ++i) {
+        for (i = it.idx + 1, to$ = expr.length; i < to$; ++i) {
           if (expr[i].operator && expr[i].node !== current) {
             current = expr[i].node;
             len++;
@@ -225,11 +222,11 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
             break;
           }
         }
-        newExpr = move[1](expr, it.postorder, len);
+        newExpr = move[1](expr, it.idx, len);
         console.log('moving 2');
       }
     } else if (it.operand) {
-      for (i = it.postorder + 1, to1$ = expr.length; i < to1$; ++i) {
+      for (i = it.idx + 1, to1$ = expr.length; i < to1$; ++i) {
         if (expr[i].operand) {
           newExpr = move[0](expr, it, expr[i]);
           break;
@@ -238,48 +235,38 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
     }
     if (newExpr != null) {
       oldExpr = expr;
-      layout = layoutFrom(newExpr);
-      displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
+      expr = newExpr;
+      displayLayout();
     }
   });
 }
 function undo(){
-  var tmp, layout;
+  var tmp;
   tmp = expr;
   expr = oldExpr;
   oldExpr = tmp;
   console.log(oldExpr, tmp);
-  layout = layoutFrom(expr);
-  displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
-}
-function layoutFrom(expr){
-  var stack, next, right, left;
-  expr = expr.slice();
-  stack = [expr.shift(), expr.shift()];
-  while (next = expr.shift()) {
-    if (next.operator) {
-      right = stack.pop();
-      left = stack.pop();
-      next.children = [left, right];
-    }
-    stack.push(next);
-  }
-  return stack[0];
+  displayLayout();
 }
 move = [
   (function(){
-    function move1(expr, rect1, rect2){
-      var x0$;
-      x0$ = expr.slice();
-      x0$[rect1.postorder] = rect2;
-      x0$[rect2.postorder] = rect1;
+    function move1(expr, operand1, operand2){
+      var x0$, tmp, ref$;
+      x0$ = expr.map(function(it){
+        return import$({}, it);
+      });
+      tmp = x0$[operand1.idx];
+      x0$[operand1.idx] = (ref$ = x0$[operand2.idx], ref$.idx = operand1.idx, ref$);
+      x0$[operand2.idx] = (tmp.idx = operand2.idx, tmp);
       return x0$;
     }
     return move1;
   }()), (function(){
     function move2(expr, chainStart, len){
       var x0$, i, to$, ref$;
-      x0$ = expr.slice();
+      x0$ = expr.map(function(it){
+        return import$({}, it);
+      });
       for (i = chainStart, to$ = chainStart + len; i <= to$; ++i) {
         (ref$ = x0$[i]).node = complement[ref$.node];
       }
@@ -288,10 +275,13 @@ move = [
     return move2;
   }()), (function(){
     function move3(expr, alpha1, alpha2){
-      var x0$;
-      x0$ = expr.slice();
-      x0$[alpha1.postorder] = alpha2;
-      x0$[alpha2.postorder] = alpha1;
+      var x0$, tmp, ref$;
+      x0$ = expr.map(function(it){
+        return import$({}, it);
+      });
+      tmp = x0$[alpha1.idx];
+      x0$[alpha1.idx] = (ref$ = x0$[alpha2.idx], ref$.idx = alpha1.idx, ref$);
+      x0$[alpha2.idx] = (tmp.idx = alpha2.idx, tmp);
       return x0$;
     }
     return move3;
@@ -299,12 +289,12 @@ move = [
 ];
 function valid(expr, alpha1, alpha2){
   var alpha3;
-  alpha3 = expr[alpha2.postorder + 1];
+  alpha3 = expr[alpha2.idx + 1];
   if (alpha3 != null && alpha3.node === alpha1.node) {
     return false;
   }
   if (alpha1.operand && alpha2.operator) {
-    return 2 * alpha2.d < alpha1.postorder;
+    return 2 * alpha2.d < alpha1.idx;
   } else {
     return true;
   }
@@ -383,7 +373,7 @@ function anneal(layout){
   temp = initialTemp(layout);
 }
 document.addEventListener('DOMContentLoaded', function(){
-  var chips, layout, history;
+  var chips, history;
   layoutRoot = d3.select('#slicing-rectangle').append('svg:svg').attr({
     width: 300,
     height: 300
@@ -425,8 +415,13 @@ document.addEventListener('DOMContentLoaded', function(){
       height: 3
     }
   ];
-  layout = initialLayout(chips);
-  displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
+  expr = initialExpr(chips);
+  displayLayout();
   history = d3.select('#history');
   document.getElementById('undo').onclick = undo;
 });
+function import$(obj, src){
+  var own = {}.hasOwnProperty;
+  for (var key in src) if (own.call(src, key)) obj[key] = src[key];
+  return obj;
+}

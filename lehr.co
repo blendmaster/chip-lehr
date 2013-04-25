@@ -1,14 +1,15 @@
 var old-expr, expr
+var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-root
+
 # enter in all the d3 nodes, and transition to new state
-!function display-layout layout, layout-root, rect-root, line-root, tree-root, \
-                         link-root, node-root, expr-root
-  # decorate layout tree
+!function display-layout
+  # calculate d-numbers
+  d-number expr
+
+  # calculate and decorate layout tree
+  layout = tree-from expr
   preordered  = preorder  layout
   postordered = postorder layout
-  d-number postordered
-  # clean up d3 tree layout's parents
-  for preordered
-    delete &parent
 
   # decorate indices
   for n, i of postordered
@@ -129,11 +130,10 @@ var old-expr, expr
     .classed \right-hovered false
 
   # draw polish expr
-  expr := postordered # handy
   expr-root.attr do
-    width: postordered.length * 50
+    width: expr.length * 50
     height: 100
-  tokens = expr-root.select-all \.token .data expr, -> it.id
+  tokens = expr-root.select-all \.token .data postordered, -> it.id
   tokens
     &enter!
       g = &append \svg:g .attr \class \token
@@ -159,7 +159,7 @@ var old-expr, expr
   # setup synchronized highlighting
 
   highlight = (it, className, state)->
-    d3.select tokens.0[it.postorder] .classed className, state
+    d3.select tokens.0[it.idx] .classed className, state
     d3.select circles.0[it.preorder] .classed className, state
     d3.select "\#l#{it.preorder}"    .classed className, state
 
@@ -198,8 +198,9 @@ var old-expr, expr
     .on \mouseout  mouseout
 
   # Testing: make move1 on expr
-  tokens.on \click !->
-    next = expr[it.postorder + 1]
+  tokens.on \click !(node)->
+    it = expr[node.idx]
+    next = expr[it.idx + 1]
     if
       # move 1
       it.operand and next?operand
@@ -209,103 +210,73 @@ var old-expr, expr
         if next? and next?operand and valid expr, it, next
           new-expr = move.2 expr, it, next
         else
-          last = expr[it.postorder - 1]
+          last = expr[it.idx - 1]
           return unless last? and last.operand
           # for now, just complement as many as we can
           current = it.node
           len = 0
-          for i from it.postorder + 1 til expr.length
+          for i from it.idx + 1 til expr.length
             if expr[i]operator and expr[i]node is not current
               current = expr[i]node
               len++
             else
               break
 
-          new-expr = move.1 expr, it.postorder, len
+          new-expr = move.1 expr, it.idx, len
           console.log 'moving 2'
       it.operand
         # search ahead for next operator
-        for i from it.postorder + 1 til expr.length
+        for i from it.idx + 1 til expr.length
           if expr[i]operand
             new-expr = move.0 expr, it, expr[i]
 
             break
     if new-expr?
       old-expr := expr
-      layout = layout-from new-expr
+      expr := new-expr
 
-      display-layout do
-        layout
-        layout-root
-        rect-root
-        line-root
-        tree-root
-        link-root
-        node-root
-        expr-root
-
+      display-layout!
 !function undo
   tmp = expr
   expr := old-expr
   old-expr := tmp
 
   console.log old-expr, tmp
-  layout = layout-from expr
 
-  display-layout do
-    layout
-    layout-root
-    rect-root
-    line-root
-    tree-root
-    link-root
-    node-root
-    expr-root
-
-# from postorder expr nodes to new tree
-function layout-from expr
-  expr.=slice()
-  stack = [expr.shift!, expr.shift!]
-  while next = expr.shift!
-    if next.operator
-      right = stack.pop!
-      left = stack.pop!
-      next.children = [left, right]
-    stack.push next
-
-  return stack.0
+  display-layout!
 
 # SA moves, operating on slicing expression
 move =
-  # swap two adjacent operands (rectangles)
-  * function move1 expr, rect1, rect2
-      expr.slice!
-        &[rect1.postorder] = rect2
-        &[rect2.postorder] = rect1
+  # swap two adjacent operands
+  * function move1 expr, operand1, operand2
+      expr.map(-> {...it})
+        tmp = &[operand1.idx]
+        &[operand1.idx] = &[operand2.idx] <<< idx: operand1.idx
+        &[operand2.idx] = tmp <<< idx: operand2.idx
 
   # complement some chain of non-zero length
   * function move2 expr, chain-start, len
-      expr.slice!
+      expr.map(-> {...it})
         for i from chain-start to chain-start + len
-          # XXX mutates nodes, so it's undoable
           &[i]node = complement[<>]
 
   # swap two adjacent operand and operator
   # WARNING: doesn't check for validity of the move
   * function move3 expr, alpha1, alpha2
-      expr.slice!
-        &[alpha1.postorder] = alpha2
-        &[alpha2.postorder] = alpha1
+      expr.map(-> {...it})
+        tmp = &[alpha1.idx]
+        &[alpha1.idx] = &[alpha2.idx] <<< idx: alpha1.idx
+        &[alpha2.idx] = tmp <<< idx: alpha2.idx
 
 # whether a move3 is valid
 # section 4, last paragraph in the paper
 function valid expr, alpha1, alpha2
-  alpha3 = expr[alpha2.postorder + 1]
+  alpha3 = expr[alpha2.idx + 1]
   if alpha3? and alpha3.node is alpha1.node
     return false
 
   if alpha1.operand and alpha2.operator
-    2 * alpha2.d < alpha1.postorder # 2d_(i-1) < i
+    2 * alpha2.d < alpha1.idx # 2d_(i-1) < i
   else
     true
 
@@ -381,8 +352,6 @@ function intial-temp layout
 !function anneal layout
   temp = initial-temp layout
 
-var layout-root, rect-root, line-root, expr-root, tree-root, link-root, node-root
-
 document.add-event-listener \DOMContentLoaded !->
 
   layout-root := d3.select \#slicing-rectangle
@@ -422,17 +391,9 @@ document.add-event-listener \DOMContentLoaded !->
     * width:  5 height:  3
     * width:  5 height:  3
 
-  layout = initial-layout chips
+  expr := initial-expr chips
 
-  display-layout do
-    layout
-    layout-root
-    rect-root
-    line-root
-    tree-root
-    link-root
-    node-root
-    expr-root
+  display-layout!
 
   history = d3.select \#history
 
