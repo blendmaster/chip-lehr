@@ -5,11 +5,6 @@ function initial-layout chips, n = 0
   operand: false
   operator: true
   children:
-    * node: n
-      id: n
-      operand: true
-      operator: false
-      chip: chips.0
     * if chips.length is 2
         node:   n + 1
         id: n + 1
@@ -18,6 +13,11 @@ function initial-layout chips, n = 0
         chip: chips.1
       else
         initial-layout chips.slice(1), n + 1
+    * node: n
+      id: n
+      operand: true
+      operator: false
+      chip: chips.0
 
 complement = H: \V V: \H
 slice-direction = H: \width, V: \height
@@ -111,8 +111,7 @@ function postorder
 function d-number expr
   zeros = 0
   for expr
-    d = if &node is \H or &node is \V then 0 else 1
-    zeros += d
+    zeros++ if &operator
     &d = zeros
 
 # enter in all the d3 nodes, and transition to new state
@@ -122,6 +121,9 @@ function d-number expr
   preordered  = preorder  layout
   postordered = postorder layout
   d-number postordered
+  # clean up d3 tree layout's parents
+  for preordered
+    delete &parent
 
   # decorate indices
   for n, i of postordered
@@ -157,6 +159,8 @@ function d-number expr
 
     &select \.layout-rect
       .attr \id -> "l#{it.preorder}"
+      .classed \left-hovered false
+      .classed \right-hovered false
       .transition!duration 750 .attr do
         width: -> it.width * 10
         height: -> it.height * 10
@@ -178,14 +182,16 @@ function d-number expr
   lines = line-root.select-all \line.layout-line
     .data slicing-svg-layout.slice-lines, -> it.id
   lines
-    &enter!append \svg:line .attr \class \layout-line
+    &enter!append \svg:line
+      .attr \class \layout-line
     &attr do
       id: -> "l#{it.preorder}"
-    &transition!duration 750 .attr do
-      x1: -> it.x1 * 10
-      x2: -> it.x2 * 10
-      y1: -> it.y1 * 10
-      y2: -> it.y2 * 10
+    &transition!duration 750
+      .attr do
+        x1: -> it.x1 * 10
+        x2: -> it.x2 * 10
+        y1: -> it.y1 * 10
+        y2: -> it.y2 * 10
 
   # slicing tree
   tree = d3.layout.tree!size [400 400]
@@ -204,10 +210,14 @@ function d-number expr
       else
         "#t#s"
   link-nodes
-    &exit!remove!
+    &exit!transition!duration 750
+      .style \stroke-opacity 0
+      .remove!
     &enter!append \svg:path .attr \class \link
-    &transition!duration 750 .attr do
-      \d link
+      .style \stroke-opacity 0
+    &transition!duration 750
+      .attr \d link
+      .style \stroke-opacity 1
 
   node-group = node-root.select-all \g.node
     .data nodes, -> it.id
@@ -230,6 +240,8 @@ function d-number expr
     .attr \transform ({x, y}) -> "translate(#x, #y)"
 
   circles = node-group.select \.node-dot
+    .classed \left-hovered false
+    .classed \right-hovered false
 
   # draw polish expr
   expr = postordered # handy
@@ -253,6 +265,8 @@ function d-number expr
           .attr class: \token-text
     &select \.token-text
       .text -> it.node
+    &classed \left-hovered false
+    &classed \right-hovered false
     &transition!duration 750
       .attr do
         transform: (_, i) -> "translate(#{i * 50 + 25}, 50)"
@@ -282,27 +296,19 @@ function d-number expr
 
   # highlight from expr, and clear existing highlight
   tokens
-    .classed \left-hovered false
-    .classed \right-hovered false
     .on \mouseover mouseover
     .on \mouseout  mouseout
 
   # highlight from graph
   node-group
-    .classed \left-hovered false
-    .classed \right-hovered false
     .on \mouseover mouseover
     .on \mouseout  mouseout
 
   # highlight from layout
   rectangles
-    .classed \left-hovered false
-    .classed \right-hovered false
     .on \mouseover mouseover
     .on \mouseout  mouseout
   lines
-    .classed \left-hovered false
-    .classed \right-hovered false
     .on \mouseover mouseover
     .on \mouseout  mouseout
 
@@ -326,19 +332,22 @@ function d-number expr
           node-root
           expr-root
 
-      # move 2
-      it.operator
-        # for now, just complement as many as we can
-        current = it.node
-        len = 0
-        for i from it.postorder + 1 til expr.length
-          if expr[i]node is not current
-            current = expr[i]node
-            len++
-          else
-            break
+      it.operator and it.parent?
+        # if move 3 is possible, take it, else move2
+        if next? and valid expr, it, next
+          new-expr = move.2 expr, it, next
+        else
+          # for now, just complement as many as we can
+          current = it.node
+          len = 0
+          for i from it.postorder + 1 til expr.length
+            if expr[i]operator and expr[i]node is not current
+              current = expr[i]node
+              len++
+            else
+              break
 
-        new-expr = move.1 expr, it.postorder, len
+          new-expr = move.1 expr, it.postorder, len
 
         layout = layout-from new-expr
 
@@ -351,7 +360,6 @@ function d-number expr
           link-root
           node-root
           expr-root
-      
 
 # from postorder expr nodes to new tree
 function layout-from expr
@@ -384,13 +392,19 @@ move =
   # WARNING: doesn't check for validity of the move
   * function move3 expr, alpha1, alpha2
       expr.slice!
-        &[alpha1.postorder] = alpha1
-        &[alpha2.postorder] = alpha2
+        &[alpha1.postorder] = alpha2
+        &[alpha2.postorder] = alpha1
 
 # whether a move3 is valid
 # section 4, last paragraph in the paper
-function validity alpha1, alpha2
-  if alpha1.node is \H or alpha1.node is \V
+function valid expr, alpha1, alpha2
+  alpha3 = expr[alpha2.postorder + 1]
+  if alpha3? and alpha3.node is alpha1.node
+    return false
+
+  if alpha1.operand and alpha2.operator
+    console.log alpha1.postorder
+    console.log 2 * alpha2.d
     2 * alpha2.d < alpha1.postorder # 2d_(i-1) < i
   else
     true
@@ -436,14 +450,6 @@ chips =
   * width:  5 height:  3
 
 layout = initial-layout chips
-
-# mix it up a little, since horiz is boring
-op = H: \V V: \H
-init = layout.node
-current = layout
-while current = current.children?1
-  init = op[init]
-  current.node = init unless current.node is not \H and current.node is not \V
 
 display-layout do
   layout
