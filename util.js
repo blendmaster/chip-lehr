@@ -13,7 +13,7 @@ function initialExpr(chips){
   for (i = 0, len$ = (ref$ = chips.slice(1)).length; i < len$; ++i) {
     chip = ref$[i];
     expr.push({
-      node: i + 1,
+      node: (i + 1) + "",
       id: i + 1,
       operand: true,
       operator: false,
@@ -28,6 +28,90 @@ function initialExpr(chips){
     });
   }
   return expr;
+}
+function unpackExpr(exprString, chips){
+  var ops, i, len$, s, operator, operand, id, chip, results$ = [];
+  ops = 0;
+  for (i = 0, len$ = exprString.length; i < len$; ++i) {
+    s = exprString[i];
+    operator = s === 'H' || s === 'V';
+    operand = !operator;
+    id = operand
+      ? s
+      : "op" + ops++;
+    chip = operand ? chips[s] : void 8;
+    results$.push({
+      node: s,
+      id: id,
+      operand: operand,
+      operator: operator,
+      chip: chip,
+      idx: i
+    });
+  }
+  return results$;
+}
+function packExpr(it){
+  return it.map(function(it){
+    return it.node;
+  }).join('');
+}
+function packChips(it){
+  return it.map(function(it){
+    return it.width + "x" + it.height;
+  }).join(' ');
+}
+function unpackChips(it){
+  return it.split(/\s+/).map(function(it){
+    var ref$, _, width, height;
+    ref$ = /(\d+)x(\d+)/.exec(it), _ = ref$[0], width = ref$[1], height = ref$[2];
+    return {
+      width: parseInt(width, 10),
+      height: parseInt(height, 10)
+    };
+  });
+}
+function packHash(expr, chips){
+  return storeHash({
+    chips: packChips(chips),
+    expr: packExpr(expr)
+  });
+}
+function unpackHash(){
+  var data, that, chips, expr;
+  data = hashData();
+  if (that = data != null ? data.chips : void 8) {
+    chips = unpackChips(that);
+  } else {
+    chips = [
+      {
+        width: 10,
+        height: 10
+      }, {
+        width: 6,
+        height: 12
+      }, {
+        width: 3,
+        height: 2
+      }, {
+        width: 5,
+        height: 3
+      }, {
+        width: 5,
+        height: 3
+      }, {
+        width: 5,
+        height: 3
+      }
+    ];
+  }
+  expr = (that = data != null ? data.expr : void 8)
+    ? unpackExpr(that, chips)
+    : initialExpr(chips);
+  return {
+    chips: chips,
+    expr: expr
+  };
 }
 function treeFrom(expr){
   var nodes, stack, next, right, left;
@@ -195,6 +279,14 @@ function flatSvgLayout(layout, pos){
     rectangles: rectangles,
     sliceLines: sliceLines
   };
+}
+function storeHash(data){
+  return location.hash = window.encodeURIComponent(JSON.stringify(data));
+}
+function hashData(){
+  try {
+    return JSON.parse(window.decodeURIComponent(location.hash.substring(1)));
+  } catch (e$) {}
 }
 function import$(obj, src){
   var own = {}.hasOwnProperty;

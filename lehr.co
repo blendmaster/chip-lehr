@@ -1,9 +1,9 @@
-var old-expr, expr
+var chips
 var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-root
 var layout-border
 
 # enter in all the d3 nodes, and transition to new state
-!function display-layout
+!function display-layout expr
   # calculate d-numbers
   d-number expr
 
@@ -209,11 +209,6 @@ var layout-border
   tokens.on \click !(node)->
     it = expr[node.idx]
     next = expr[it.idx + 1]
-    # temporarily turn off mouse listeners
-    tokens
-      .on \mouseover null
-      .on \mouseout  null
-
     if
       # move 1
       it.operand and next?operand
@@ -236,7 +231,6 @@ var layout-border
               break
 
           new-expr = move.1 expr, it.idx, len
-          console.log 'moving 2'
       it.operand
         # search ahead for next operator
         for i from it.idx + 1 til expr.length
@@ -245,18 +239,11 @@ var layout-border
 
             break
     if new-expr?
-      old-expr := expr
-      expr := new-expr
-
-      display-layout!
-!function undo
-  tmp = expr
-  expr := old-expr
-  old-expr := tmp
-
-  console.log old-expr, tmp
-
-  display-layout!
+      # temporarily turn off mouse listeners
+      tokens
+        .on \mouseover null
+        .on \mouseout  null
+      pack-hash new-expr, chips
 
 # SA moves, operating on slicing expression
 move =
@@ -365,6 +352,13 @@ function intial-temp layout
 !function anneal layout
   temp = initial-temp layout
 
+window.add-event-listener \hashchange !->
+  data = unpack-hash!
+
+  {chips} := data
+
+  display-layout data.expr
+
 document.add-event-listener \DOMContentLoaded !->
 
   layout-root := d3.select \#slicing-rectangle
@@ -399,19 +393,11 @@ document.add-event-listener \DOMContentLoaded !->
     .attr do
       id: \node-root
 
-  chips =
-    * width: 10 height: 10
-    * width:  6 height: 12
-    * width:  3 height:  2
-    * width:  5 height:  3
-    * width:  5 height:  3
-    * width:  5 height:  3
+  data = unpack-hash!
 
-  expr := initial-expr chips
+  {chips} := data
 
-  display-layout!
+  display-layout data.expr
 
   history = d3.select \#history
-
-  document.get-element-by-id \undo .onclick = undo
 

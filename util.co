@@ -3,9 +3,57 @@ function initial-expr chips
   n = 1
   for chip, i of chips.slice 1
     expr.push do
-      {node: i + 1 , id: i + 1 , +operand, -operator, chip, idx: n++}
-      {node: \H    , id: "op#i", -operand, +operator,       idx: n++}
+      {node: "#{i + 1}" , id: i + 1 , +operand, -operator, chip, idx: n++}
+      {node: \H       , id: "op#i", -operand, +operator,       idx: n++}
   expr
+
+function unpack-expr expr-string, chips
+  ops = 0
+  for s, i of expr-string
+    operator = s is \H or s is \V
+    operand = !operator
+    id = if operand then s else "op#{ops++}"
+    chip = if operand then chips[s]
+    {node: s, id, operand, operator, chip, idx: i}
+
+function pack-expr
+  it.map(-> it.node)join ''
+
+function pack-chips
+  it.map(-> "#{it.width}x#{it.height}")join ' '
+
+function unpack-chips
+  it.split /\s+/ .map ->
+    [_, width, height] = /(\d+)x(\d+)/.exec it
+    width: parseInt width, 10
+    height: parseInt height, 10
+
+function pack-hash expr, chips
+  store-hash do
+    chips: pack-chips chips
+    expr: pack-expr expr
+
+function unpack-hash
+  data = hash-data!
+  
+  if data?chips
+    chips = unpack-chips that
+  else
+    chips =
+      * width: 10 height: 10
+      * width:  6 height: 12
+      * width:  3 height:  2
+      * width:  5 height:  3
+      * width:  5 height:  3
+      * width:  5 height:  3
+
+  expr =
+    if data?expr
+      unpack-expr that, chips
+    else
+      initial-expr chips
+
+  return {chips, expr}
 
 # from postorder expr nodes to new tree
 function tree-from expr
@@ -128,3 +176,11 @@ function flat-svg-layout layout, pos ? x: 0 y: 0
       rect-y: pos.y
 
   return {rectangles, slice-lines}
+
+function store-hash data
+  location.hash = window.encodeURIComponent JSON.stringify data
+
+function hash-data
+  try
+    JSON.parse window.decodeURIComponent location.hash.substring 1
+

@@ -1,5 +1,5 @@
-var oldExpr, expr, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move, R, P, slice$ = [].slice;
-function displayLayout(){
+var chips, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move, R, P, slice$ = [].slice;
+function displayLayout(expr){
   var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
   dNumber(expr);
   layout = treeFrom(expr);
@@ -223,7 +223,6 @@ function displayLayout(){
     var it, next, newExpr, last, current, len, i, to$, to1$;
     it = expr[node.idx];
     next = expr[it.idx + 1];
-    tokens.on('mouseover', null).on('mouseout', null);
     if (it.operand && (next != null && next.operand)) {
       newExpr = move[0](expr, it, next);
     } else if (it.operator) {
@@ -245,7 +244,6 @@ function displayLayout(){
           }
         }
         newExpr = move[1](expr, it.idx, len);
-        console.log('moving 2');
       }
     } else if (it.operand) {
       for (i = it.idx + 1, to1$ = expr.length; i < to1$; ++i) {
@@ -256,19 +254,10 @@ function displayLayout(){
       }
     }
     if (newExpr != null) {
-      oldExpr = expr;
-      expr = newExpr;
-      displayLayout();
+      tokens.on('mouseover', null).on('mouseout', null);
+      packHash(newExpr, chips);
     }
   });
-}
-function undo(){
-  var tmp;
-  tmp = expr;
-  expr = oldExpr;
-  oldExpr = tmp;
-  console.log(oldExpr, tmp);
-  displayLayout();
 }
 move = [
   (function(){
@@ -394,8 +383,14 @@ function anneal(layout){
   var temp;
   temp = initialTemp(layout);
 }
+window.addEventListener('hashchange', function(){
+  var data;
+  data = unpackHash();
+  chips = data.chips;
+  displayLayout(data.expr);
+});
 document.addEventListener('DOMContentLoaded', function(){
-  var chips, history;
+  var data, history;
   layoutRoot = d3.select('#slicing-rectangle').append('svg:svg').attr({
     width: 300,
     height: 300
@@ -421,31 +416,10 @@ document.addEventListener('DOMContentLoaded', function(){
   nodeRoot = treeRoot.append('svg:g').attr({
     id: 'node-root'
   });
-  chips = [
-    {
-      width: 10,
-      height: 10
-    }, {
-      width: 6,
-      height: 12
-    }, {
-      width: 3,
-      height: 2
-    }, {
-      width: 5,
-      height: 3
-    }, {
-      width: 5,
-      height: 3
-    }, {
-      width: 5,
-      height: 3
-    }
-  ];
-  expr = initialExpr(chips);
-  displayLayout();
+  data = unpackHash();
+  chips = data.chips;
+  displayLayout(data.expr);
   history = d3.select('#history');
-  document.getElementById('undo').onclick = undo;
 });
 function import$(obj, src){
   var own = {}.hasOwnProperty;
