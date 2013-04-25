@@ -1,4 +1,4 @@
-var chips, slicingLayout, op, init, current, ref$, SVGL, width, height, sliceDirection, opposite, lineDimension, oppDimension, expr, visit, i, len$, n, tree, nodes, links, len1$;
+var chips, slicingLayout, op, init, current, ref$, SVGL, width, height, sliceDirection, opposite, lineDimension, oppDimension, preordered, postordered, expr, i, len$, n, len1$, tree, nodes, links, slicingSvgLayout, slice$ = [].slice;
 chips = [
   {
     width: 10,
@@ -105,63 +105,153 @@ function setSize(layout, dir, value){
 }
 slicingLayout = calculateSize(slicingLayout);
 console.log(slicingLayout);
-function slicingRectangle(layout, position){
-  var children, x0$, left, right, dir, opp, lineDim, lineOpp, leftRect, rightRect, ref$, x1$, x2$, x3$, x4$;
-  children = layout.children;
-  position == null && (position = {
+function flatSvgLayout(layout, pos){
+  var rectangles, sliceLines, ref$, left, right, dir, opp, lineDim, lineOpp, leftLayout, rightLayout, ref1$;
+  pos == null && (pos = {
     x: 0,
     y: 0
   });
-  x0$ = SVGL('svg');
-  x0$.setAttribute('class', "layout-slice layout-slice-" + layout.node);
-  x0$.setAttribute('width', layout.width);
-  x0$.setAttribute('height', layout.height);
-  x0$.setAttribute('x', position.x);
-  x0$.setAttribute('y', position.y);
-  if (children != null) {
-    left = children[0], right = children[1];
+  rectangles = [];
+  sliceLines = [];
+  if (layout.children) {
+    ref$ = layout.children, left = ref$[0], right = ref$[1];
     dir = sliceDirection[layout.node];
     opp = opposite[dir];
     lineDim = lineDimension[dir];
     lineOpp = oppDimension[lineDim];
-    leftRect = slicingRectangle(left);
-    rightRect = slicingRectangle(right, (ref$ = {}, ref$[lineDim] = 0, ref$[lineOpp] = left[opp], ref$));
-    x0$.appendChild(leftRect);
-    x0$.appendChild(rightRect);
-    x0$.appendChild((x1$ = SVGL('line'), x1$.setAttribute('class', "layout-line layout-line-" + layout.node), x1$.setAttribute('id', "l" + layout.preorder), x1$.setAttribute(lineDim + '1', 0), x1$.setAttribute(lineDim + '2', layout[dir]), x1$.setAttribute(lineOpp + '1', left[opp]), x1$.setAttribute(lineOpp + '2', left[opp]), x1$));
+    sliceLines.push((layout[lineDim + '1'] = pos[lineDim], layout[lineDim + '2'] = pos[lineDim] + layout[dir], layout[lineOpp + '1'] = pos[lineOpp] + left[opp], layout[lineOpp + '2'] = pos[lineOpp] + left[opp], layout));
+    leftLayout = flatSvgLayout(left, pos);
+    rightLayout = flatSvgLayout(right, (ref1$ = {}, ref1$[lineDim] = pos[lineDim], ref1$[lineOpp] = pos[lineOpp] + left[opp], ref1$));
+    rectangles.push.apply(rectangles, slice$.call(leftLayout.rectangles).concat(slice$.call(rightLayout.rectangles)));
+    sliceLines.push.apply(sliceLines, slice$.call(leftLayout.sliceLines).concat(slice$.call(rightLayout.sliceLines)));
   } else {
-    x0$.appendChild((x2$ = SVGL('rect'), x2$.setAttribute('id', "l" + layout.preorder), x2$.setAttribute('class', 'layout-rect'), x2$.setAttribute('width', '100%'), x2$.setAttribute('height', '100%'), x2$));
-    x0$.appendChild((x3$ = SVGL('rect'), x3$.setAttribute('id', "chip" + layout.node), x3$.setAttribute('class', 'chip-rect'), x3$.setAttribute('width', layout.chip.width), x3$.setAttribute('height', layout.chip.height), x3$.setAttribute('x', layout.width / 2 - layout.chip.width), x3$.setAttribute('y', layout.chip.height), x3$));
-    x0$.appendChild((x4$ = SVGL('text'), x4$.setAttribute('class', 'layout-text'), x4$.setAttribute('x', layout.width / 2), x4$.setAttribute('y', layout.height / 2), x4$.textContent = layout.node, x4$));
+    rectangles.push((layout.rectX = pos.x, layout.rectY = pos.y, layout));
   }
-  return x0$;
+  return {
+    rectangles: rectangles,
+    sliceLines: sliceLines
+  };
 }
-expr = [];
-visit = function(it){
-  var that, i$, x0$, len$;
-  if (that = it.children) {
-    for (i$ = 0, len$ = that.length; i$ < len$; ++i$) {
-      x0$ = that[i$];
-      visit(x0$);
+function preorder(it){
+  var order, visit;
+  order = [];
+  visit = function(it){
+    var that, i$, x0$, len$, results$ = [];
+    order.push(it);
+    if (that = it.children) {
+      for (i$ = 0, len$ = that.length; i$ < len$; ++i$) {
+        x0$ = that[i$];
+        results$.push(visit(x0$));
+      }
+      return results$;
     }
-  }
-  return expr.push(it);
-};
-visit(slicingLayout);
-for (i = 0, len$ = expr.length; i < len$; ++i) {
-  n = expr[i];
+  };
+  visit(it);
+  return order;
+}
+function postorder(it){
+  var order, visit;
+  order = [];
+  visit = function(it){
+    var that, i$, x0$, len$;
+    if (that = it.children) {
+      for (i$ = 0, len$ = that.length; i$ < len$; ++i$) {
+        x0$ = that[i$];
+        visit(x0$);
+      }
+    }
+    return order.push(it);
+  };
+  visit(it);
+  return order;
+}
+preordered = preorder(slicingLayout);
+postordered = postorder(slicingLayout);
+expr = postordered;
+for (i = 0, len$ = postordered.length; i < len$; ++i) {
+  n = postordered[i];
   n.postorder = i;
+}
+for (i = 0, len1$ = preordered.length; i < len1$; ++i) {
+  n = preordered[i];
+  n.preorder = i;
 }
 tree = d3.layout.tree().size([400, 400]);
 nodes = tree.nodes(slicingLayout);
 links = tree.links(nodes);
-for (i = 0, len1$ = nodes.length; i < len1$; ++i) {
-  n = nodes[i];
-  n.preorder = i;
-}
+slicingSvgLayout = flatSvgLayout(slicingLayout);
+console.log(slicingSvgLayout);
 document.addEventListener('DOMContentLoaded', function(){
-  var layoutRoot, link, nodeGroup, circles, exprRoot, highlight, setClass, highlightTree, mouseover, mouseout, tokens, i, ref$, len$, n;
-  document.getElementById('slicing-rectangle').appendChild(slicingRectangle(slicingLayout));
+  var slicingLayoutRoot, rectangles, x0$, lines, layoutRoot, link, nodeGroup, circles, exprRoot, highlight, setClass, highlightTree, mouseover, mouseout, tokens, i, ref$, len$, n;
+  slicingLayoutRoot = d3.select('#slicing-rectangle').append('svg:svg').attr({
+    width: 250,
+    height: 350
+  });
+  rectangles = slicingLayoutRoot.append('svg:g').attr('class', 'layout-rectangles').selectAll('g.layout-rectangle-group').data(slicingSvgLayout.rectangles).enter().append('svg:g').attr({
+    'class': 'layout-area',
+    transform: function(arg$){
+      var rectX, rectY;
+      rectX = arg$.rectX, rectY = arg$.rectY;
+      return "translate(" + rectX + ", " + rectY + ")";
+    }
+  });
+  x0$ = rectangles;
+  x0$.append('svg:rect').attr({
+    id: function(it){
+      return "l" + it.preorder;
+    },
+    'class': 'layout-rect',
+    width: function(it){
+      return it.width;
+    },
+    height: function(it){
+      return it.height;
+    }
+  });
+  x0$.append('svg:rect').attr({
+    'class': 'layout-chip',
+    width: function(it){
+      return it.chip.width * 10;
+    },
+    height: function(it){
+      return it.chip.height * 10;
+    },
+    x: function(it){
+      return (it.width - it.chip.width * 10) / 2;
+    },
+    y: function(it){
+      return (it.height - it.chip.height * 10) / 2;
+    }
+  });
+  x0$.append('svg:text').attr({
+    'class': 'layout-text',
+    x: function(it){
+      return it.width / 2;
+    },
+    y: function(it){
+      return it.height / 2;
+    }
+  }).text(function(it){
+    return it.node;
+  });
+  lines = slicingLayoutRoot.append('svg:g').attr('class', 'layout-lines').selectAll('line.layout-line').data(slicingSvgLayout.sliceLines).enter().append('svg:line').attr({
+    id: function(it){
+      return "l" + it.preorder;
+    },
+    'class': 'layout-line',
+    x1: function(it){
+      return it.x1;
+    },
+    x2: function(it){
+      return it.x2;
+    },
+    y1: function(it){
+      return it.y1;
+    },
+    y2: function(it){
+      return it.y2;
+    }
+  });
   layoutRoot = d3.select('#slicing-tree').append('svg:svg').attr({
     width: 500,
     height: 500
@@ -223,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function(){
     return it.node;
   }).on('mouseover', mouseover).on('mouseout', mouseout);
   nodeGroup.on('mouseover', mouseover).on('mouseout', mouseout);
+  rectangles.on('mouseover', mouseover).on('mouseout', mouseout);
   for (i = 0, len$ = (ref$ = nodes).length; i < len$; ++i) {
     n = ref$[i];
     (fn$.call(this, document.getElementById("l" + n.preorder), i, n));
