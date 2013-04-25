@@ -234,13 +234,14 @@ function expandRects(root, size){
       if (left.height < half && right.height < half) {
         stretch = half;
       }
+      console.log(left, right, stretch);
       expandRects(left, {
-        width: root.width,
-        height: Math.max(stretch, left.height)
+        height: Math.min(stretch, root.height - right.height),
+        width: root.width
       });
       return expandRects(right, {
-        width: root.width,
-        height: Math.max(stretch, right.height)
+        height: Math.min(stretch, root.height - left.height),
+        width: root.width
       });
     case 'V':
       half = root.width / 2;
@@ -250,11 +251,11 @@ function expandRects(root, size){
       }
       expandRects(left, {
         height: root.height,
-        width: Math.max(stretch, left.width)
+        width: Math.max(stretch, root.width - right.width)
       });
       return expandRects(right, {
         height: root.height,
-        width: Math.max(stretch, right.width)
+        width: Math.max(stretch, root.width - left.width)
       });
     }
   }

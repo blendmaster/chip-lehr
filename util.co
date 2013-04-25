@@ -136,14 +136,24 @@ function expand-rects root, size ? root{width, height}
       stretch = 0
       stretch = half if left.height < half and right.height < half
 
-      expand-rects left, {root.width, height: Math.max stretch, left.height}
-      expand-rects right, {root.width, height: Math.max stretch, right.height}
+      console.log left, right, stretch
+
+      expand-rects left,
+        height: Math.min stretch, (root.height - right.height)
+        width: root.width
+      expand-rects right,
+        height: Math.min stretch, (root.height - left.height)
+        width: root.width
     case \V
       half = root.width / 2
       stretch = 0
       stretch = half if left.width < half and right.width < half
-      expand-rects left, {root.height, width: Math.max stretch, left.width}
-      expand-rects right, {root.height, width: Math.max stretch, right.width}
+      expand-rects left,
+        height: root.height
+        width: Math.max stretch, (root.width - right.width)
+      expand-rects right,
+        height: root.height
+        width: Math.max stretch, (root.width - left.width)
 
 function flat-svg-layout layout, pos ? x: 0 y: 0
   rectangles = []
