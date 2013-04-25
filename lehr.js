@@ -1,69 +1,34 @@
-var chips, slicingLayout, op, init, current, ref$, SVGL, width, height, sliceDirection, opposite, lineDimension, oppDimension, preordered, postordered, expr, i, len$, n, len1$, tree, nodes, links, slicingSvgLayout, slice$ = [].slice;
-chips = [
-  {
-    width: 10,
-    height: 10
-  }, {
-    width: 5,
-    height: 12
-  }, {
-    width: 3,
-    height: 2
-  }, {
-    width: 5,
-    height: 3
-  }, {
-    width: 8,
-    height: 8
-  }, {
-    width: 3,
-    height: 5
-  }, {
-    width: 6,
-    height: 6
-  }, {
-    width: 1,
-    height: 1
-  }
-];
+var complement, sliceDirection, opposite, lineDimension, oppDimension, move, slice$ = [].slice;
 function initialLayout(chips, n){
   n == null && (n = 0);
   return {
     node: 'H',
+    id: "operator" + n,
+    operand: false,
+    operator: true,
     children: [
       {
         node: n,
-        width: chips[0].width * 10,
-        height: chips[0].height * 10,
+        id: n,
+        operand: true,
+        operator: false,
         chip: chips[0]
       }, chips.length === 2
         ? {
           node: n + 1,
-          width: chips[1].width * 10,
-          height: chips[1].height * 10,
+          id: n + 1,
+          operand: true,
+          operator: false,
           chip: chips[1]
         }
         : initialLayout(chips.slice(1), n + 1)
     ]
   };
 }
-slicingLayout = initialLayout(chips);
-op = {
+complement = {
   H: 'V',
   V: 'H'
 };
-init = slicingLayout.node;
-current = slicingLayout;
-while (current = (ref$ = current.children) != null ? ref$[1] : void 8) {
-  init = op[init];
-  if (!(current.node !== 'H' && current.node !== 'V')) {
-    current.node = init;
-  }
-}
-SVGL = function(it){
-  return document.createElementNS('http://www.w3.org/2000/svg', it);
-};
-width = height = 500;
 sliceDirection = {
   H: 'width',
   V: 'height'
@@ -81,7 +46,7 @@ oppDimension = {
   y: 'x'
 };
 function calculateSize(layout){
-  var left, right, dir, opp, fitted;
+  var left, right, dir, opp, fitted, ref$;
   if (layout.children != null) {
     left = calculateSize(layout.children[0]);
     right = calculateSize(layout.children[1]);
@@ -92,7 +57,7 @@ function calculateSize(layout){
     setSize(right, dir, fitted);
     return layout[dir] = fitted, layout[opp] = left[opp] + right[opp], layout;
   } else {
-    return layout;
+    return layout.width = (ref$ = layout.chip).width, layout.height = ref$.height, layout;
   }
 }
 function setSize(layout, dir, value){
@@ -103,8 +68,6 @@ function setSize(layout, dir, value){
     return setSize(that[1], dir, value);
   }
 }
-slicingLayout = calculateSize(slicingLayout);
-console.log(slicingLayout);
 function flatSvgLayout(layout, pos){
   var rectangles, sliceLines, ref$, left, right, dir, opp, lineDim, lineOpp, leftLayout, rightLayout, ref1$;
   pos == null && (pos = {
@@ -165,53 +128,63 @@ function postorder(it){
   visit(it);
   return order;
 }
-preordered = preorder(slicingLayout);
-postordered = postorder(slicingLayout);
-expr = postordered;
-for (i = 0, len$ = postordered.length; i < len$; ++i) {
-  n = postordered[i];
-  n.postorder = i;
+function dNumber(expr){
+  var zeros, i$, x0$, len$, d, results$ = [];
+  zeros = 0;
+  for (i$ = 0, len$ = expr.length; i$ < len$; ++i$) {
+    x0$ = expr[i$];
+    d = x0$.node === 'H' || x0$.node === 'V' ? 0 : 1;
+    zeros += d;
+    results$.push(x0$.d = zeros);
+  }
+  return results$;
 }
-for (i = 0, len1$ = preordered.length; i < len1$; ++i) {
-  n = preordered[i];
-  n.preorder = i;
-}
-tree = d3.layout.tree().size([400, 400]);
-nodes = tree.nodes(slicingLayout);
-links = tree.links(nodes);
-slicingSvgLayout = flatSvgLayout(slicingLayout);
-console.log(slicingSvgLayout);
-document.addEventListener('DOMContentLoaded', function(){
-  var maxDim, scale, slicingLayoutRoot, rectangles, x0$, lines, layoutRoot, link, nodeGroup, circles, exprRoot, highlight, setClass, highlightTree, mouseover, mouseout, tokens, i, ref$, len$, n;
-  maxDim = Math.max(slicingLayout.width, slicingLayout.height);
+function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot){
+  var preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, expr, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
+  preordered = preorder(layout);
+  postordered = postorder(layout);
+  dNumber(postordered);
+  for (i = 0, len$ = postordered.length; i < len$; ++i) {
+    n = postordered[i];
+    n.postorder = i;
+  }
+  for (i = 0, len1$ = preordered.length; i < len1$; ++i) {
+    n = preordered[i];
+    n.preorder = i;
+  }
+  calculateSize(layout);
+  slicingSvgLayout = flatSvgLayout(layout);
+  maxDim = 10 * Math.max(layout.width, layout.height);
   scale = 300 / maxDim;
-  slicingLayoutRoot = d3.select('#slicing-rectangle').append('svg:svg').attr({
-    width: 300,
-    height: 300
-  }).append('svg:g').attr('class', 'layout-container').attr('transform', "scale(" + scale + ")");
-  rectangles = slicingLayoutRoot.append('svg:g').attr('class', 'layout-rectangles').selectAll('g.layout-rectangle-group').data(slicingSvgLayout.rectangles).enter().append('svg:g').attr({
-    'class': 'layout-area',
+  layoutRoot.transition().duration(750).attr('transform', "scale(" + scale + ")");
+  rectangles = rectRoot.selectAll('g.layout-area').data(slicingSvgLayout.rectangles, function(it){
+    return it.id;
+  });
+  x0$ = rectangles;
+  x1$ = x0$.enter();
+  group = x1$.append('svg:g').attr('class', 'layout-area').attr('transform', "translate(0,0)");
+  x2$ = group;
+  x2$.append('svg:rect').attr('class', 'layout-rect');
+  x2$.append('svg:rect').attr('class', 'layout-chip');
+  x2$.append('svg:text').attr('class', 'layout-text');
+  x0$.transition().duration(750).attr({
     transform: function(arg$){
       var rectX, rectY;
       rectX = arg$.rectX, rectY = arg$.rectY;
-      return "translate(" + rectX + ", " + rectY + ")";
+      return "translate(" + 10 * rectX + ", " + 10 * rectY + ")";
     }
   });
-  x0$ = rectangles;
-  x0$.append('svg:rect').attr({
-    id: function(it){
-      return "l" + it.preorder;
-    },
-    'class': 'layout-rect',
+  x0$.select('.layout-rect').attr('id', function(it){
+    return "l" + it.preorder;
+  }).transition().duration(750).attr({
     width: function(it){
-      return it.width;
+      return it.width * 10;
     },
     height: function(it){
-      return it.height;
+      return it.height * 10;
     }
   });
-  x0$.append('svg:rect').attr({
-    'class': 'layout-chip',
+  x0$.select('.layout-chip').transition().duration(750).attr({
     width: function(it){
       return it.chip.width * 10;
     },
@@ -219,73 +192,119 @@ document.addEventListener('DOMContentLoaded', function(){
       return it.chip.height * 10;
     },
     x: function(it){
-      return (it.width - it.chip.width * 10) / 2;
+      return (it.width * 10 - it.chip.width * 10) / 2;
     },
     y: function(it){
-      return (it.height - it.chip.height * 10) / 2;
+      return (it.height * 10 - it.chip.height * 10) / 2;
     }
   });
-  x0$.append('svg:text').attr({
-    'class': 'layout-text',
-    x: function(it){
-      return it.width / 2;
-    },
-    y: function(it){
-      return it.height / 2;
-    }
-  }).style('font-size', function(it){
-    return Math.max(8, Math.min(26, it.height)) + "px";
-  }).text(function(it){
+  x0$.select('.layout-text').text(function(it){
     return it.node;
+  }).transition().duration(750).style('font-size', function(it){
+    return Math.max(8, Math.min(36, it.height * 10)) + "px";
+  }).attr({
+    x: function(it){
+      return it.width * 10 / 2;
+    },
+    y: function(it){
+      return it.height * 10 / 2;
+    }
   });
-  lines = slicingLayoutRoot.append('svg:g').attr('class', 'layout-lines').selectAll('line.layout-line').data(slicingSvgLayout.sliceLines).enter().append('svg:line').attr({
+  lines = lineRoot.selectAll('line.layout-line').data(slicingSvgLayout.sliceLines, function(it){
+    return it.id;
+  });
+  x3$ = lines;
+  x3$.enter().append('svg:line').attr('class', 'layout-line');
+  x3$.attr({
     id: function(it){
       return "l" + it.preorder;
-    },
-    'class': 'layout-line',
+    }
+  });
+  x3$.transition().duration(750).attr({
     x1: function(it){
-      return it.x1;
+      return it.x1 * 10;
     },
     x2: function(it){
-      return it.x2;
+      return it.x2 * 10;
     },
     y1: function(it){
-      return it.y1;
+      return it.y1 * 10;
     },
     y2: function(it){
-      return it.y2;
+      return it.y2 * 10;
     }
   });
-  layoutRoot = d3.select('#slicing-tree').append('svg:svg').attr({
-    width: 500,
-    height: 500
-  }).append('svg:g').attr({
-    'class': 'container',
-    transform: 'translate(50, 50)'
-  });
+  tree = d3.layout.tree().size([400, 400]);
+  nodes = tree.nodes(layout);
+  links = tree.links(nodes);
   link = d3.svg.diagonal();
-  layoutRoot.selectAll('path.link').data(links).enter().append('svg:path').attr({
-    'class': 'link',
-    d: link
-  });
-  nodeGroup = layoutRoot.selectAll('g.node').data(nodes).enter().append('svg:g').attr({
-    'class': 'node',
-    transform: function(arg$){
-      var x, y;
-      x = arg$.x, y = arg$.y;
-      return "translate(" + x + ", " + y + ")";
+  linkNodes = linkRoot.selectAll('path.link').data(links, function(it){
+    var s, t;
+    s = it.source.id;
+    t = it.target.id;
+    if (s > t) {
+      return s + "" + t;
+    } else {
+      return t + "" + s;
     }
   });
-  circles = nodeGroup.append('svg:circle').attr({
+  x4$ = linkNodes;
+  x4$.exit().remove();
+  x4$.enter().append('svg:path').attr('class', 'link');
+  x4$.transition().duration(750).attr('d', link);
+  nodeGroup = nodeRoot.selectAll('g.node').data(nodes, function(it){
+    return it.id;
+  });
+  x5$ = nodeGroup.enter();
+  g = x5$.append('svg:g').attr({
+    'class': 'node',
+    transform: 'translate(0,0)'
+  });
+  x6$ = g;
+  x6$.append('svg:circle').attr({
     'class': 'node-dot',
     r: 20
   });
-  nodeGroup.append('svg:text').attr({
+  x6$.append('svg:text').attr({
     'class': 'node-text'
   }).text(function(it){
     return it.node;
   });
-  exprRoot = d3.select('#polish-expression').append('p');
+  nodeGroup.transition().duration(750).attr('transform', function(arg$){
+    var x, y;
+    x = arg$.x, y = arg$.y;
+    return "translate(" + x + ", " + y + ")";
+  });
+  circles = nodeGroup.select('.node-dot');
+  expr = postordered;
+  exprRoot.attr({
+    width: postordered.length * 50,
+    height: 100
+  });
+  tokens = exprRoot.selectAll('.token').data(expr, function(it){
+    return it.id;
+  });
+  x7$ = tokens;
+  x8$ = x7$.enter();
+  g = x8$.append('svg:g').attr('class', 'token').attr('transform', 'translate(0,0)');
+  x9$ = g;
+  x9$.append('svg:rect').attr({
+    'class': 'token-rect',
+    width: 50,
+    height: 50,
+    x: -25,
+    y: -25
+  });
+  x9$.append('text').attr({
+    'class': 'token-text'
+  }).text(function(it){
+    return it.node;
+  });
+  x7$.transition().duration(750).attr({
+    transform: function(_, i){
+      return "translate(" + (i * 50 + 25) + ", 50)";
+    }
+  });
   highlight = function(it, className, state){
     d3.select(tokens[0][it.postorder]).classed(className, state);
     d3.select(circles[0][it.preorder]).classed(className, state);
@@ -311,23 +330,129 @@ document.addEventListener('DOMContentLoaded', function(){
   };
   mouseover = setClass(true);
   mouseout = setClass(false);
-  tokens = exprRoot.selectAll('span.token').data(expr).enter().append('span').attr({
-    'class': 'token'
-  }).text(function(it){
-    return it.node;
-  }).on('mouseover', mouseover).on('mouseout', mouseout);
-  nodeGroup.on('mouseover', mouseover).on('mouseout', mouseout);
-  rectangles.on('mouseover', mouseover).on('mouseout', mouseout);
-  for (i = 0, len$ = (ref$ = nodes).length; i < len$; ++i) {
-    n = ref$[i];
-    (fn$.call(this, document.getElementById("l" + n.preorder), i, n));
+  tokens.classed('left-hovered', false).classed('right-hovered', false).on('mouseover', mouseover).on('mouseout', mouseout);
+  nodeGroup.classed('left-hovered', false).classed('right-hovered', false).on('mouseover', mouseover).on('mouseout', mouseout);
+  rectangles.classed('left-hovered', false).classed('right-hovered', false).on('mouseover', mouseover).on('mouseout', mouseout);
+  lines.classed('left-hovered', false).classed('right-hovered', false).on('mouseover', mouseover).on('mouseout', mouseout);
+  tokens.on('click', function(it){
+    var next, newExpr, layout;
+    next = expr[it.postorder + 1];
+    if (!(it.operator || next == null || next.operator)) {
+      newExpr = move[0](expr, it, next);
+      console.log('new expr', newExpr);
+      layout = layoutFrom(newExpr);
+      console.log('new layout', layout);
+      displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
+    }
+  });
+}
+function layoutFrom(expr){
+  var stack, next, right, left;
+  expr = expr.slice();
+  stack = [expr.shift(), expr.shift()];
+  while (next = expr.shift()) {
+    if (next.operator) {
+      right = stack.pop();
+      left = stack.pop();
+      next.children = [left, right];
+    }
+    stack.push(next);
   }
-  function fn$(el, i, n){
-    el.addEventListener('mouseover', function(){
-      return mouseover.call(this, n);
-    });
-    el.addEventListener('mouseout', function(){
-      return mouseout.call(this, n);
-    });
+  return stack[0];
+}
+move = [
+  (function(){
+    function move1(expr, rect1, rect2){
+      var x0$;
+      x0$ = expr.slice();
+      x0$[rect1.postorder] = rect2;
+      x0$[rect2.postorder] = rect1;
+      return x0$;
+    }
+    return move1;
+  }()), (function(){
+    function move2(expr, chainStart, len){
+      var x0$, i, ref$;
+      x0$ = expr.slice();
+      for (i = chainStart; i < len; ++i) {
+        (ref$ = x0$[i]).node = complement(ref$.node);
+      }
+      return x0$;
+    }
+    return move2;
+  }()), (function(){
+    function move3(expr, alpha1, alpha2){
+      var x0$;
+      x0$ = expr.slice();
+      x0$[alpha1.postorder] = alpha1;
+      x0$[alpha2.postorder] = alpha2;
+      return x0$;
+    }
+    return move3;
+  }())
+];
+function validity(alpha1, alpha2){
+  if (alpha1.node === 'H' || alpha1.node === 'V') {
+    return 2 * alpha2.d < alpha1.postorder;
+  } else {
+    return true;
   }
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var layoutRoot, rectRoot, lineRoot, exprRoot, treeRoot, linkRoot, nodeRoot, chips, layout, op, init, current, ref$;
+  layoutRoot = d3.select('#slicing-rectangle').append('svg:svg').attr({
+    width: 300,
+    height: 300
+  }).append('svg:g').attr('class', 'layout-container');
+  rectRoot = layoutRoot.append('svg:g').attr('class', 'layout-rectangles');
+  lineRoot = layoutRoot.append('svg:g').attr('class', 'layout-lines');
+  exprRoot = d3.select('#polish-expression').append('svg:svg');
+  treeRoot = d3.select('#slicing-tree').append('svg:svg').attr({
+    width: 500,
+    height: 500
+  }).append('svg:g').attr({
+    id: 'tree-root',
+    transform: 'translate(50, 50)'
+  });
+  linkRoot = treeRoot.append('svg:g').attr({
+    id: 'link-root'
+  });
+  nodeRoot = treeRoot.append('svg:g').attr({
+    id: 'node-root'
+  });
+  chips = [
+    {
+      width: 10,
+      height: 10
+    }, {
+      width: 6,
+      height: 12
+    }, {
+      width: 3,
+      height: 2
+    }, {
+      width: 5,
+      height: 3
+    }, {
+      width: 5,
+      height: 3
+    }, {
+      width: 5,
+      height: 3
+    }
+  ];
+  layout = initialLayout(chips);
+  op = {
+    H: 'V',
+    V: 'H'
+  };
+  init = layout.node;
+  current = layout;
+  while (current = (ref$ = current.children) != null ? ref$[1] : void 8) {
+    init = op[init];
+    if (!(current.node !== 'H' && current.node !== 'V')) {
+      current.node = init;
+    }
+  }
+  displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
 });

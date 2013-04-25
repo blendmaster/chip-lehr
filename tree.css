@@ -21,16 +21,28 @@ section {
   padding: 1em;
   font-size: 16pt;
 }
-.hovered {
+.token-rect {
+  fill: #fff;
+  stroke: none;
+}
+.token-text {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  fill: #000;
+}
+.hovered,
+.hovered > .token-rect {
   fill: #ffc0cb;
   background: #ffc0cb;
   cursor: pointer;
 }
-.left-hovered {
+.left-hovered,
+.left-hovered > .token-rect {
   fill: #afa;
   background: #afa;
 }
-.right-hovered {
+.right-hovered,
+.right-hovered > .token-rect {
   fill: #aaf;
   background: #aaf;
 }
