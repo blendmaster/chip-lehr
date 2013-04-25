@@ -53,6 +53,7 @@ opp-dimension   = x: \y y: \x
 
 # expand leaves to rectangles, and decorate nodes with size fitted to
 # their children
+# not efficient, but it'll do
 function calculate-size root
   if root.children?
     left  = calculate-size root.children.0
@@ -63,10 +64,6 @@ function calculate-size root
 
     fitted = Math.max left[dir], right[dir]
 
-    # expand both children
-    set-size left,  dir, fitted
-    set-size right, dir, fitted
-
     # fitted along slice direction, summed in other
     root <<<
       (dir): fitted
@@ -74,11 +71,28 @@ function calculate-size root
   else
     root <<< root.chip{width, height}
 
-function set-size root, dir, value
-  root[dir] = value
-  if slice-direction[root.node] is dir and root.children
-    set-size that.0, dir, value
-    set-size that.1, dir, value
+# after calculate-size runs, lines are spanned, but rectangles are in the top
+# left corners
+# so expand them to the full size
+function expand-rects root, size ? root{width, height}
+  root.width = size.width if root.width < size.width
+  root.height = size.height if root.height < size.height
+  if root.children?
+    [left, right] = root.children
+    switch root.node
+    case \H
+      half = root.height / 2
+      stretch = 0
+      stretch = half if left.height < half and right.height < half
+
+      expand-rects left, {root.width, height: Math.max stretch, left.height}
+      expand-rects right, {root.width, height: Math.max stretch, right.height}
+    case \V
+      half = root.width / 2
+      stretch = 0
+      stretch = half if left.width < half and right.width < half
+      expand-rects left, {root.height, width: Math.max stretch, left.width}
+      expand-rects right, {root.height, width: Math.max stretch, right.width}
 
 function flat-svg-layout layout, pos ? x: 0 y: 0
   rectangles = []

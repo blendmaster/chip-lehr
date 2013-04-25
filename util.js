@@ -118,19 +118,55 @@ function calculateSize(root){
     dir = sliceDirection[root.node];
     opp = opposite[dir];
     fitted = Math.max(left[dir], right[dir]);
-    setSize(left, dir, fitted);
-    setSize(right, dir, fitted);
     return root[dir] = fitted, root[opp] = left[opp] + right[opp], root;
   } else {
     return root.width = (ref$ = root.chip).width, root.height = ref$.height, root;
   }
 }
-function setSize(root, dir, value){
-  var that;
-  root[dir] = value;
-  if (that = sliceDirection[root.node] === dir && root.children) {
-    setSize(that[0], dir, value);
-    return setSize(that[1], dir, value);
+function expandRects(root, size){
+  var ref$, left, right, half, stretch;
+  size == null && (size = {
+    width: root.width,
+    height: root.height
+  });
+  if (root.width < size.width) {
+    root.width = size.width;
+  }
+  if (root.height < size.height) {
+    root.height = size.height;
+  }
+  if (root.children != null) {
+    ref$ = root.children, left = ref$[0], right = ref$[1];
+    switch (root.node) {
+    case 'H':
+      half = root.height / 2;
+      stretch = 0;
+      if (left.height < half && right.height < half) {
+        stretch = half;
+      }
+      expandRects(left, {
+        width: root.width,
+        height: Math.max(stretch, left.height)
+      });
+      return expandRects(right, {
+        width: root.width,
+        height: Math.max(stretch, right.height)
+      });
+    case 'V':
+      half = root.width / 2;
+      stretch = 0;
+      if (left.width < half && right.width < half) {
+        stretch = half;
+      }
+      expandRects(left, {
+        height: root.height,
+        width: Math.max(stretch, left.width)
+      });
+      return expandRects(right, {
+        height: root.height,
+        width: Math.max(stretch, right.width)
+      });
+    }
   }
 }
 function flatSvgLayout(layout, pos){

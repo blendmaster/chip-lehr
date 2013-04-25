@@ -14,6 +14,7 @@ function displayLayout(){
     n.preorder = i;
   }
   calculateSize(layout);
+  expandRects(layout);
   slicingSvgLayout = flatSvgLayout(layout);
   maxDim = 10 * Math.max(layout.width, layout.height);
   scale = 300 / maxDim;

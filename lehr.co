@@ -19,6 +19,7 @@ var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-roo
 
   # slicing layout
   calculate-size layout
+  expand-rects layout
   slicing-svg-layout = flat-svg-layout layout
 
   # fit layout to 300, 300
