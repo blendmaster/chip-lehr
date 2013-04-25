@@ -149,8 +149,16 @@ console.log slicing-svg-layout
 # adapted from http://blog.pixelingene.com/2011/07/building-a-tree-diagram-in-d3-js/
 <-! document.add-event-listener \DOMContentLoaded
 
+
+# fit layout to 300, 300
+max-dim = Math.max slicing-layout.width, slicing-layout.height
+scale = 300 / max-dim
+
+
 slicing-layout-root = d3.select \#slicing-rectangle
-  .append \svg:svg .attr width: 250 height: 350
+  .append \svg:svg .attr width: 300 height: 300
+  .append \svg:g .attr \class \layout-container
+    .attr \transform "scale(#scale)"
 
 rectangles = slicing-layout-root
   .append \svg:g .attr \class \layout-rectangles
@@ -180,7 +188,9 @@ rectangles
       class: \layout-text
       x: -> it.width / 2
       y: -> it.height / 2
+    .style \font-size -> "#{Math.max 8, (Math.min 26, it.height)}px"
     .text -> it.node
+
 
 lines = slicing-layout-root
   .append \svg:g .attr \class \layout-lines

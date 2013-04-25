@@ -182,11 +182,13 @@ links = tree.links(nodes);
 slicingSvgLayout = flatSvgLayout(slicingLayout);
 console.log(slicingSvgLayout);
 document.addEventListener('DOMContentLoaded', function(){
-  var slicingLayoutRoot, rectangles, x0$, lines, layoutRoot, link, nodeGroup, circles, exprRoot, highlight, setClass, highlightTree, mouseover, mouseout, tokens, i, ref$, len$, n;
+  var maxDim, scale, slicingLayoutRoot, rectangles, x0$, lines, layoutRoot, link, nodeGroup, circles, exprRoot, highlight, setClass, highlightTree, mouseover, mouseout, tokens, i, ref$, len$, n;
+  maxDim = Math.max(slicingLayout.width, slicingLayout.height);
+  scale = 300 / maxDim;
   slicingLayoutRoot = d3.select('#slicing-rectangle').append('svg:svg').attr({
-    width: 250,
-    height: 350
-  });
+    width: 300,
+    height: 300
+  }).append('svg:g').attr('class', 'layout-container').attr('transform', "scale(" + scale + ")");
   rectangles = slicingLayoutRoot.append('svg:g').attr('class', 'layout-rectangles').selectAll('g.layout-rectangle-group').data(slicingSvgLayout.rectangles).enter().append('svg:g').attr({
     'class': 'layout-area',
     transform: function(arg$){
@@ -231,6 +233,8 @@ document.addEventListener('DOMContentLoaded', function(){
     y: function(it){
       return it.height / 2;
     }
+  }).style('font-size', function(it){
+    return Math.max(8, Math.min(26, it.height)) + "px";
   }).text(function(it){
     return it.node;
   });
