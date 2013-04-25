@@ -27,8 +27,26 @@
   </div>
 </section>
 
-<section id=annealing-history>
-  <h2>Annealing History</h2>
+<section id=annealing>
+  <h2>Annealing</h2>
+  <div id=controls>
+    <button id=start>Start</button>
+    <button id=pause>Pause</button>
+    <button id=step>Step</button>
+    <button id=reset>Reset</button>
+  </div>
+  <div><progress hidden id=anneal-progress>Progress</progress></div>
+  <div id=temp-container hidden>
+    <span id=temp-val>
+    <meter hidden id=temp-meter>Temperature</meter>
+  </div>
+  <div id=stats>
+    <label>Moves: <input id="moves" type="number" readonly></label><br>
+    <label>Last Area:<input id="last-cost" type="number" readonly></label><br>
+    <label>Best Area:<input id="best-cost" type="number" readonly></label>
+  </div>
+
+
   <div id=history></div>
 </section>
 
