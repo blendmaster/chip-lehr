@@ -267,7 +267,8 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
   });
   x6$.append('svg:text').attr({
     'class': 'node-text'
-  }).text(function(it){
+  });
+  nodeGroup.select('.node-text').text(function(it){
     return it.node;
   });
   nodeGroup.transition().duration(750).attr('transform', function(arg$){
@@ -297,7 +298,8 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
   });
   x9$.append('text').attr({
     'class': 'token-text'
-  }).text(function(it){
+  });
+  x7$.select('.token-text').text(function(it){
     return it.node;
   });
   x7$.transition().duration(750).attr({
@@ -335,13 +337,25 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
   rectangles.classed('left-hovered', false).classed('right-hovered', false).on('mouseover', mouseover).on('mouseout', mouseout);
   lines.classed('left-hovered', false).classed('right-hovered', false).on('mouseover', mouseover).on('mouseout', mouseout);
   tokens.on('click', function(it){
-    var next, newExpr, layout;
+    var next, newExpr, layout, current, len, i, to$;
     next = expr[it.postorder + 1];
-    if (!(it.operator || next == null || next.operator)) {
+    if (it.operand && (next != null && next.operand)) {
       newExpr = move[0](expr, it, next);
-      console.log('new expr', newExpr);
       layout = layoutFrom(newExpr);
-      console.log('new layout', layout);
+      displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
+    } else if (it.operator) {
+      current = it.node;
+      len = 0;
+      for (i = it.postorder + 1, to$ = expr.length; i < to$; ++i) {
+        if (expr[i].node !== current) {
+          current = expr[i].node;
+          len++;
+        } else {
+          break;
+        }
+      }
+      newExpr = move[1](expr, it.postorder, len);
+      layout = layoutFrom(newExpr);
       displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
     }
   });
@@ -372,10 +386,10 @@ move = [
     return move1;
   }()), (function(){
     function move2(expr, chainStart, len){
-      var x0$, i, ref$;
+      var x0$, i, to$, ref$;
       x0$ = expr.slice();
-      for (i = chainStart; i < len; ++i) {
-        (ref$ = x0$[i]).node = complement(ref$.node);
+      for (i = chainStart, to$ = chainStart + len; i <= to$; ++i) {
+        (ref$ = x0$[i]).node = complement[ref$.node];
       }
       return x0$;
     }

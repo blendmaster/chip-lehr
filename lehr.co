@@ -222,7 +222,9 @@ function d-number expr
         r     : 20
       &append \svg:text
         .attr class: \node-text
-        .text -> it.node
+
+  node-group.select \.node-text
+    .text -> it.node
 
   node-group.transition!duration 750
     .attr \transform ({x, y}) -> "translate(#x, #y)"
@@ -249,9 +251,11 @@ function d-number expr
             y: -25
         &append \text
           .attr class: \token-text
-          .text -> it.node
-    &transition!duration 750 .attr do
-      transform: (_, i) -> "translate(#{i * 50 + 25}, 50)"
+    &select \.token-text
+      .text -> it.node
+    &transition!duration 750
+      .attr do
+        transform: (_, i) -> "translate(#{i * 50 + 25}, 50)"
 
   # setup synchronized highlighting
 
@@ -305,22 +309,49 @@ function d-number expr
   # Testing: make move1 on expr
   tokens.on \click !->
     next = expr[it.postorder + 1]
-    unless it.operator or next!? or next.operator
-      new-expr = move.0 expr, it, next
-      console.log 'new expr' new-expr
+    if
+      # move 1
+      it.operand and next?operand
+        new-expr = move.0 expr, it, next
 
-      layout = layout-from new-expr
-      console.log 'new layout' layout
+        layout = layout-from new-expr
 
-      display-layout do
-        layout
-        layout-root
-        rect-root
-        line-root
-        tree-root
-        link-root
-        node-root
-        expr-root
+        display-layout do
+          layout
+          layout-root
+          rect-root
+          line-root
+          tree-root
+          link-root
+          node-root
+          expr-root
+
+      # move 2
+      it.operator
+        # for now, just complement as many as we can
+        current = it.node
+        len = 0
+        for i from it.postorder + 1 til expr.length
+          if expr[i]node is not current
+            current = expr[i]node
+            len++
+          else
+            break
+
+        new-expr = move.1 expr, it.postorder, len
+
+        layout = layout-from new-expr
+
+        display-layout do
+          layout
+          layout-root
+          rect-root
+          line-root
+          tree-root
+          link-root
+          node-root
+          expr-root
+      
 
 # from postorder expr nodes to new tree
 function layout-from expr
@@ -346,8 +377,8 @@ move =
   # complement some chain of non-zero length
   * function move2 expr, chain-start, len
       expr.slice!
-        for i from chain-start til len
-          &[i]node = complement <>
+        for i from chain-start to chain-start + len
+          &[i]node = complement[<>]
 
   # swap two adjacent operand and operator
   # WARNING: doesn't check for validity of the move
