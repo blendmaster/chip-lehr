@@ -61,7 +61,7 @@ section {
   stroke: #00f;
 }
 .layout-rect {
-  fill: #fff;
+  fill: rgba(0,0,0,0);
   stroke: none;
 }
 .layout-rect.hovered {
@@ -87,4 +87,9 @@ section {
   dominant-baseline: middle;
   fill: #000;
   pointer-events: none;
+}
+#layout-border {
+  fill: none;
+  stroke: #000;
+  stroke-width: 4;
 }

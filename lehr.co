@@ -1,5 +1,6 @@
 var old-expr, expr
 var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-root
+var layout-border
 
 # enter in all the d3 nodes, and transition to new state
 !function display-layout
@@ -26,7 +27,12 @@ var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-roo
   max-dim = 10 * Math.max layout.width, layout.height
   scale = 300 / max-dim
 
-  layout-root .transition!duration 750 .attr \transform "scale(#scale)"
+  layout-root .transition!duration 750
+    .attr \transform "scale(#scale)"
+
+  layout-border .transition!duration 750 .attr do
+    width: layout.width * 10
+    height: layout.height * 10
 
   rectangles = rect-root.select-all \g.layout-area
     .data slicing-svg-layout.rectangles, -> it.id
@@ -34,9 +40,13 @@ var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-roo
   rectangles
     &enter!
       group = &append \svg:g .attr \class \layout-area
-        .attr \transform "translate(0,0)"
+        .attr transform: ({rect-x, rect-y}) ->
+          "translate(#{10 * rect-x}, #{10 * rect-y})"
       group
         &append \svg:rect .attr \class \layout-rect
+          .attr do
+            width: -> it.width * 10
+            height: -> it.height * 10
         &append \svg:rect .attr \class \layout-chip
         &append \svg:text .attr \class \layout-text
 
@@ -46,8 +56,6 @@ var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-roo
 
     &select \.layout-rect
       .attr \id -> "l#{it.preorder}"
-      .classed \left-hovered false
-      .classed \right-hovered false
       .transition!duration 750 .attr do
         width: -> it.width * 10
         height: -> it.height * 10
@@ -127,8 +135,6 @@ var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-roo
     .attr \transform ({x, y}) -> "translate(#x, #y)"
 
   circles = node-group.select \.node-dot
-    .classed \left-hovered false
-    .classed \right-hovered false
 
   # draw polish expr
   expr-root.attr do
@@ -151,11 +157,14 @@ var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-roo
           .attr class: \token-text
     &select \.token-text
       .text -> it.node
-    &classed \left-hovered false
-    &classed \right-hovered false
     &transition!duration 750
       .attr do
         transform: (_, i) -> "translate(#{i * 50 + 25}, 50)"
+      .each \end ->
+        # highlight from expr, and clear existing highlight
+        d3.select this
+          .on \mouseover mouseover
+          .on \mouseout  mouseout
 
   # setup synchronized highlighting
 
@@ -178,12 +187,10 @@ var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-roo
       highlight-tree that.1, className, state
 
   mouseover = set-class true
-  mouseout = set-class false
-
-  # highlight from expr, and clear existing highlight
-  tokens
-    .on \mouseover mouseover
-    .on \mouseout  mouseout
+  mouseout = !->
+    d3.select-all \.hovered .classed \hovered false
+    d3.select-all \.left-hovered .classed \left-hovered false
+    d3.select-all \.right-hovered .classed \right-hovered false
 
   # highlight from graph
   node-group
@@ -202,6 +209,11 @@ var layout-root, rect-root, line-root, tree-root, link-root, node-root, expr-roo
   tokens.on \click !(node)->
     it = expr[node.idx]
     next = expr[it.idx + 1]
+    # temporarily turn off mouse listeners
+    tokens
+      .on \mouseover null
+      .on \mouseout  null
+
     if
       # move 1
       it.operand and next?operand
@@ -361,6 +373,9 @@ document.add-event-listener \DOMContentLoaded !->
 
   rect-root := layout-root
     .append \svg:g .attr \class \layout-rectangles
+
+  layout-border := layout-root.append \svg:rect
+    .attr id: \layout-border width: \100% height: \100%
 
   line-root := layout-root
     .append \svg:g .attr \class \layout-lines

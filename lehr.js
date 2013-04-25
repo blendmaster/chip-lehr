@@ -1,4 +1,4 @@
-var oldExpr, expr, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, move, R, P, slice$ = [].slice;
+var oldExpr, expr, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move, R, P, slice$ = [].slice;
 function displayLayout(){
   var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
   dNumber(expr);
@@ -19,14 +19,31 @@ function displayLayout(){
   maxDim = 10 * Math.max(layout.width, layout.height);
   scale = 300 / maxDim;
   layoutRoot.transition().duration(750).attr('transform', "scale(" + scale + ")");
+  layoutBorder.transition().duration(750).attr({
+    width: layout.width * 10,
+    height: layout.height * 10
+  });
   rectangles = rectRoot.selectAll('g.layout-area').data(slicingSvgLayout.rectangles, function(it){
     return it.id;
   });
   x0$ = rectangles;
   x1$ = x0$.enter();
-  group = x1$.append('svg:g').attr('class', 'layout-area').attr('transform', "translate(0,0)");
+  group = x1$.append('svg:g').attr('class', 'layout-area').attr({
+    transform: function(arg$){
+      var rectX, rectY;
+      rectX = arg$.rectX, rectY = arg$.rectY;
+      return "translate(" + 10 * rectX + ", " + 10 * rectY + ")";
+    }
+  });
   x2$ = group;
-  x2$.append('svg:rect').attr('class', 'layout-rect');
+  x2$.append('svg:rect').attr('class', 'layout-rect').attr({
+    width: function(it){
+      return it.width * 10;
+    },
+    height: function(it){
+      return it.height * 10;
+    }
+  });
   x2$.append('svg:rect').attr('class', 'layout-chip');
   x2$.append('svg:text').attr('class', 'layout-text');
   x0$.transition().duration(750).attr({
@@ -38,7 +55,7 @@ function displayLayout(){
   });
   x0$.select('.layout-rect').attr('id', function(it){
     return "l" + it.preorder;
-  }).classed('left-hovered', false).classed('right-hovered', false).transition().duration(750).attr({
+  }).transition().duration(750).attr({
     width: function(it){
       return it.width * 10;
     },
@@ -138,7 +155,7 @@ function displayLayout(){
     x = arg$.x, y = arg$.y;
     return "translate(" + x + ", " + y + ")";
   });
-  circles = nodeGroup.select('.node-dot').classed('left-hovered', false).classed('right-hovered', false);
+  circles = nodeGroup.select('.node-dot');
   exprRoot.attr({
     width: expr.length * 50,
     height: 100
@@ -163,12 +180,12 @@ function displayLayout(){
   x7$.select('.token-text').text(function(it){
     return it.node;
   });
-  x7$.classed('left-hovered', false);
-  x7$.classed('right-hovered', false);
   x7$.transition().duration(750).attr({
     transform: function(_, i){
       return "translate(" + (i * 50 + 25) + ", 50)";
     }
+  }).each('end', function(){
+    return d3.select(this).on('mouseover', mouseover).on('mouseout', mouseout);
   });
   highlight = function(it, className, state){
     d3.select(tokens[0][it.idx]).classed(className, state);
@@ -194,8 +211,11 @@ function displayLayout(){
     }
   };
   mouseover = setClass(true);
-  mouseout = setClass(false);
-  tokens.on('mouseover', mouseover).on('mouseout', mouseout);
+  mouseout = function(){
+    d3.selectAll('.hovered').classed('hovered', false);
+    d3.selectAll('.left-hovered').classed('left-hovered', false);
+    d3.selectAll('.right-hovered').classed('right-hovered', false);
+  };
   nodeGroup.on('mouseover', mouseover).on('mouseout', mouseout);
   rectangles.on('mouseover', mouseover).on('mouseout', mouseout);
   lines.on('mouseover', mouseover).on('mouseout', mouseout);
@@ -203,6 +223,7 @@ function displayLayout(){
     var it, next, newExpr, last, current, len, i, to$, to1$;
     it = expr[node.idx];
     next = expr[it.idx + 1];
+    tokens.on('mouseover', null).on('mouseout', null);
     if (it.operand && (next != null && next.operand)) {
       newExpr = move[0](expr, it, next);
     } else if (it.operator) {
@@ -380,6 +401,11 @@ document.addEventListener('DOMContentLoaded', function(){
     height: 300
   }).append('svg:g').attr('class', 'layout-container');
   rectRoot = layoutRoot.append('svg:g').attr('class', 'layout-rectangles');
+  layoutBorder = layoutRoot.append('svg:rect').attr({
+    id: 'layout-border',
+    width: '100%',
+    height: '100%'
+  });
   lineRoot = layoutRoot.append('svg:g').attr('class', 'layout-lines');
   exprRoot = d3.select('#polish-expression').append('svg:svg');
   treeRoot = d3.select('#slicing-tree').append('svg:svg').attr({
