@@ -1,4 +1,10 @@
-var complement, sliceDirection, opposite, lineDimension, oppDimension, slice$ = [].slice;
+var $, $$, complement, sliceDirection, opposite, lineDimension, oppDimension, slice$ = [].slice;
+$ = function(it){
+  return document.getElementById(it);
+};
+$$ = function(it){
+  return [].slice.call(document.querySelectorAll(it));
+};
 function initialExpr(chips){
   var expr, n, i, ref$, len$, chip;
   expr = [{

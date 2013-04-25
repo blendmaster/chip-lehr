@@ -220,19 +220,28 @@ function displayLayout(expr){
   rectangles.on('mouseover', mouseover).on('mouseout', mouseout);
   lines.on('mouseover', mouseover).on('mouseout', mouseout);
   tokens.on('click', function(node){
-    var it, next, newExpr, last, current, len, i, to$, to1$;
+    var it, next, moveNo, n, newExpr, last, current, len, i, to$;
     it = expr[node.idx];
     next = expr[it.idx + 1];
-    if (it.operand && (next != null && next.operand)) {
-      newExpr = move[0](expr, it, next);
-    } else if (it.operator) {
-      if (next != null && (next != null && next.operand) && valid(expr, it, next)) {
-        newExpr = move[2](expr, it, next);
-      } else {
-        last = expr[it.idx - 1];
-        if (!(last != null && last.operand)) {
-          return;
+    moveNo = $$('input[type=radio]').filter(function(it){
+      return it.checked;
+    })[0].value;
+    console.log(moveNo);
+    switch (moveNo) {
+    case '0':
+      if (it.operand) {
+        n = it.idx + 1;
+        while (next != null && next.operator) {
+          next = expr[n++];
         }
+        if (next != null) {
+          newExpr = move[0](expr, it, next);
+        }
+      }
+      break;
+    case '1':
+      last = expr[it.idx - 1];
+      if (last == null || last.operand) {
         current = it.node;
         len = 0;
         for (i = it.idx + 1, to$ = expr.length; i < to$; ++i) {
@@ -245,11 +254,15 @@ function displayLayout(expr){
         }
         newExpr = move[1](expr, it.idx, len);
       }
-    } else if (it.operand) {
-      for (i = it.idx + 1, to1$ = expr.length; i < to1$; ++i) {
-        if (expr[i].operand) {
-          newExpr = move[0](expr, it, expr[i]);
-          break;
+      break;
+    case '2':
+      if (it.operator) {
+        if ((next != null && next.operand) && valid(expr, it, next)) {
+          newExpr = move[2](expr, it, next);
+        }
+      } else {
+        if ((next != null && next.operator) && valid(expr, it, next)) {
+          newExpr = move[2](expr, it, next);
         }
       }
     }
@@ -305,7 +318,7 @@ function valid(expr, alpha1, alpha2){
     return false;
   }
   if (alpha1.operand && alpha2.operator) {
-    return 2 * alpha2.d < alpha1.idx;
+    return 2 * alpha2.d < alpha1.idx + 1;
   } else {
     return true;
   }

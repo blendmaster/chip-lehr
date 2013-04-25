@@ -206,38 +206,40 @@ var layout-border
     .on \mouseout  mouseout
 
   # Testing: make move1 on expr
-  tokens.on \click !(node)->
+  tokens.on \click !(node) ->
     it = expr[node.idx]
     next = expr[it.idx + 1]
-    if
-      # move 1
-      it.operand and next?operand
-        new-expr = move.0 expr, it, next
-      it.operator
-        # if move 3 is possible, take it, else move2
-        if next? and next?operand and valid expr, it, next
-          new-expr = move.2 expr, it, next
-        else
-          last = expr[it.idx - 1]
-          return unless last? and last.operand
-          # for now, just complement as many as we can
-          current = it.node
-          len = 0
-          for i from it.idx + 1 til expr.length
-            if expr[i]operator and expr[i]node is not current
-              current = expr[i]node
-              len++
-            else
-              break
 
-          new-expr = move.1 expr, it.idx, len
-      it.operand
-        # search ahead for next operator
+    move-no = $$ 'input[type=radio]' .filter(-> it.checked)0.value
+
+    console.log move-no
+    switch move-no
+    case \0 # move 1
+      if it.operand
+        n = it.idx + 1
+        next = expr[n++] while next?operator
+        if next?
+          new-expr = move.0 expr, it, next
+    case \1 # move 2
+      last = expr[it.idx - 1]
+      if last!? or last.operand
+        current = it.node
+        len = 0
         for i from it.idx + 1 til expr.length
-          if expr[i]operand
-            new-expr = move.0 expr, it, expr[i]
-
+          if expr[i]operator and expr[i]node is not current
+            current = expr[i]node
+            len++
+          else
             break
+        new-expr = move.1 expr, it.idx, len
+    case \2
+      if it.operator
+        if next?operand and valid expr, it, next
+          new-expr = move.2 expr, it, next
+      else # operand
+        if next?operator and valid expr, it, next
+          new-expr = move.2 expr, it, next
+
     if new-expr?
       # temporarily turn off mouse listeners
       tokens
@@ -276,7 +278,7 @@ function valid expr, alpha1, alpha2
     return false
 
   if alpha1.operand and alpha2.operator
-    2 * alpha2.d < alpha1.idx # 2d_(i-1) < i
+    2 * alpha2.d < alpha1.idx + 1 # 2d_(i-1) < i
   else
     true
 

@@ -1,3 +1,6 @@
+$ = -> document.get-element-by-id it
+$$ = -> [].slice.call document.query-selector-all it
+
 function initial-expr chips
   expr = [{node: 0 id: 0, +operand, -operator, chip: chips.0, idx: 0}]
   n = 1
@@ -35,7 +38,7 @@ function pack-hash expr, chips
 
 function unpack-hash
   data = hash-data!
-  
+
   if data?chips
     chips = unpack-chips that
   else
