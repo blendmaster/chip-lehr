@@ -1,0 +1,216 @@
+# XXX lots of copypasta from utils.co
+"use strict"
+
+complement      = H: \V V: \H
+slice-direction = H: \width, V: \height
+opposite        = width: \height height: \width
+line-dimension  = width: \x height: \y
+opp-dimension   = x: \y y: \x
+
+# from postorder expr nodes to new tree
+function tree-from expr
+  nodes = expr.map -> {...it}
+  stack = [nodes.shift!, nodes.shift!]
+  while next = nodes.shift!
+    if next.operator
+      right = stack.pop!
+      left  = stack.pop!
+      next.children = [left, right]
+    stack.push next
+
+  return stack.0
+
+function calculate-size root
+  if root.children?
+    left  = calculate-size root.children.0
+    right = calculate-size root.children.1
+
+    dir = slice-direction[root.node]
+    opp = opposite[dir]
+
+    fitted = Math.max left[dir], right[dir]
+
+    # fitted along slice direction, summed in other
+    root <<<
+      (dir): fitted
+      (opp): left[opp] + right[opp]
+  else
+    root <<< root.chip{width, height}
+
+move =
+  # swap two adjacent operands
+  * function move1 expr, operand1, operand2
+      expr.map(-> {...it})
+        tmp = &[operand1.idx]
+        &[operand1.idx] = &[operand2.idx] <<< idx: operand1.idx
+        &[operand2.idx] = tmp <<< idx: operand2.idx
+
+  # complement some chain of non-zero length
+  * function move2 expr, chain-start, len
+      expr.map(-> {...it})
+        for i from chain-start to chain-start + len
+          &[i]node = complement[<>]
+
+  # swap two adjacent operand and operator
+  # WARNING: doesn't check for validity of the move
+  * function move3 expr, alpha1, alpha2
+      expr.map(-> {...it})
+        tmp = &[alpha1.idx]
+        &[alpha1.idx] = &[alpha2.idx] <<< idx: alpha1.idx
+        &[alpha2.idx] = tmp <<< idx: alpha2.idx
+
+# whether a move3 is valid
+# section 4, last paragraph in the paper
+function valid expr, alpha1, alpha2
+  alpha3 = expr[alpha2.idx + 1]
+  if alpha3? and alpha3.node is alpha1.node
+    false
+  else
+    if alpha1.operand and alpha2.operator
+      2 * alpha2.d < alpha1.idx + 1 # 2d_(i-1) < i
+    else
+      true
+
+# annealing stuff
+
+# TODO efficient area recalculation from section 7
+function cost expr
+  # paper uses wire length manhattan distance, but to keep it simple
+  # don't have any wires, just area
+  tree = tree-from expr
+  calculate-size tree
+
+  tree.width * tree.height
+
+# temperature schedule
+const R = 0.85
+function next-temperature old-temp
+  R * old-temp
+
+function choose-move expr
+  # enumerate all candidates for chosen move
+  candidates = []
+  switch m = Math.floor Math.random! * 3
+  case 0 # move 1
+    var last-operand
+    for i til expr.length - 1
+      cur = expr[i]
+      next = expr[i + 1]
+      if cur.operand
+        if last-operand
+          candidates.push [last-operand, cur]
+          last-operand = cur
+  case 1
+    var start-chain
+    chain-len = 0
+    for i til expr.length - 1
+      cur = expr[i]
+      next = expr[i + 1]
+      if cur.operand
+        if chain-len > 0
+          candidates.push [start-chain, chain-len]
+          chain-len = 0
+          start-chain = void
+      else # operator
+        start-chain ?= i
+        chain-len++
+    # clean up last chain
+    if chain-len > 0
+      candidates.push [start-chain, chain-len]
+  case 2
+    for i til expr.length - 1
+      cur = expr[i]
+      next = expr[i + 1]
+
+      if cur.operand
+        if next.operator and valid expr, cur, next
+          candidates.push [cur, next]
+      else # operator
+        if next.operand and valid expr, cur, next
+          candidates.push [cur, next]
+
+  return move[m] expr, ...candidates[Math.floor Math.random! * candidates.length]
+
+const P = 0.95
+function intial-temp expr
+  # perform some random moves
+  c = cost expr
+  moves = for i til 100
+    m = choose-move expr
+    new-c = cost m
+
+    if new-c > c
+      new-c - c
+
+  # compute the average of chance in cost in uphill moves.
+  sum = moves.reduce (a, b) -> a + b
+  avg = sum / moves.length
+
+  # T = -avg / ln(P)
+  return -avg / Math.log(P)
+
+# section 7 in the paper
+!function anneal chips, expr
+  temp = initial-temp expr
+
+  cur = best = expr
+  cur-cost = best-cost = cost expr
+
+  # number of possible moves (M1, M2, M3), upper bound
+  N = 2 * (expr.length + chips.length)
+  max-moves = 2 * N
+
+  overall-total = 0
+
+  while temp > 0.1
+    accepted = 0
+    downhill = 0
+    total = 0
+
+    for i til max-moves
+      total++
+
+      m = choose-move expr
+      c = cost m
+
+      if c < cur-cost
+        if c < best-cost
+          best = m
+          best-cost = c
+        cur = m
+        cur-cost = c
+        accepted++
+        downhill++
+      else
+        if make-move temp, cur-cost, c
+          last = m
+          cur-cost = c
+          accepted++
+
+      break if downhill > N
+
+    temp = next-temperature temp
+    overall-total += total
+
+    if accepted/total < 0.05
+      break
+
+    # logging
+
+  return best
+
+function make-move temp, cur-cost, new-cost
+  Math.exp -(new-cost - cur-cost) / temp
+  
+      
+@onmessage = !({{chips, expr}: data}) ->
+  best-expr = anneal chips, expr
+
+  # transfer back to main thread
+  post-message {type: \done, best-expr}
+
+function progress
+  post-message {type: \progress value: it}
+
+function log
+  post-message {type: \log message: it}

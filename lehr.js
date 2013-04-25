@@ -1,4 +1,4 @@
-var chips, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move, R, P, slice$ = [].slice;
+var chips, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move;
 function displayLayout(expr){
   var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
   dNumber(expr);
@@ -322,79 +322,6 @@ function valid(expr, alpha1, alpha2){
   } else {
     return true;
   }
-}
-function cost(layout){
-  return layout.width * layout.height;
-}
-R = 0.85;
-function nextTemperature(oldTemp){
-  return R * oldTemp;
-}
-function chooseMove(expr){
-  var candidates, compLen, i, to$, compStart, last, start, to1$, len, to2$;
-  candidates = [];
-  compLen = 0;
-  for (i = 0, to$ = expr.length - 1; i < to$; ++i) {
-    if (expr[i].operand && expr[i + 1].operand) {
-      candidates.push({
-        move: 0,
-        args: [expr[i], expr[i + 1]]
-      });
-    }
-    if (expr[i].operator && expr[i].node !== last) {
-      compStart = i;
-      compLen++;
-      last = expr[i].node;
-    }
-    if (expr[i].operand) {
-      if (compLen > 0) {
-        for (start = compStart, to1$ = compStart + compLen; start < to1$; ++start) {
-          for (len = 1, to2$ = compStart + compLen - start; len <= to2$; ++len) {
-            candidates.push({
-              move: 1,
-              args: [start, len]
-            });
-          }
-        }
-      }
-      last = void 8;
-      compLen = 0;
-    }
-    if (valid(expr, expr[i], expr[i + 1])) {
-      candidates.push({
-        move: 2,
-        args: [expr[i], expr[i + 1]]
-      });
-    }
-  }
-  return candidates[Math.floor(Math.random() * candidates.length)];
-}
-P = 0.95;
-function intialTemp(layout){
-  var expr, c, moves, res$, i, m, newC, sum, avg;
-  expr = postorder(layout);
-  c = cost(layout);
-  res$ = [];
-  for (i = 0; i < 100; ++i) {
-    m = chooseMove(expr);
-    expr = move[m.move].apply(move, [expr].concat(slice$.call(m.args)));
-    layout = layoutFrom(expr);
-    calculateSize(layout);
-    newC = cost(layout);
-    if (newC > c) {
-      res$.push(newC - c);
-    }
-  }
-  moves = res$;
-  sum = moves.reduce(function(a, b){
-    return a + b;
-  });
-  avg = sum / moves.length;
-  return -avg / Math.log(P);
-}
-function anneal(layout){
-  var temp;
-  temp = initialTemp(layout);
 }
 window.addEventListener('hashchange', function(){
   var data;
