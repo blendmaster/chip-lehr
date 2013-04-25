@@ -1,4 +1,4 @@
-var complement, sliceDirection, opposite, lineDimension, oppDimension, move, slice$ = [].slice;
+var complement, sliceDirection, opposite, lineDimension, oppDimension, oldExpr, expr, move, R, P, layoutRoot, rectRoot, lineRoot, exprRoot, treeRoot, linkRoot, nodeRoot, slice$ = [].slice;
 function initialLayout(chips, n){
   n == null && (n = 0);
   return {
@@ -141,7 +141,7 @@ function dNumber(expr){
   return results$;
 }
 function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot){
-  var preordered, postordered, i$, x0$, len$, i, len1$, n, len2$, slicingSvgLayout, maxDim, scale, rectangles, x1$, x2$, group, x3$, lines, x4$, tree, nodes, links, link, linkNodes, x5$, nodeGroup, x6$, g, x7$, circles, expr, tokens, x8$, x9$, x10$, highlight, setClass, highlightTree, mouseover, mouseout;
+  var preordered, postordered, i$, x0$, len$, i, len1$, n, len2$, slicingSvgLayout, maxDim, scale, rectangles, x1$, x2$, group, x3$, lines, x4$, tree, nodes, links, link, linkNodes, x5$, nodeGroup, x6$, g, x7$, circles, tokens, x8$, x9$, x10$, highlight, setClass, highlightTree, mouseover, mouseout;
   preordered = preorder(layout);
   postordered = postorder(layout);
   dNumber(postordered);
@@ -344,16 +344,18 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
   rectangles.on('mouseover', mouseover).on('mouseout', mouseout);
   lines.on('mouseover', mouseover).on('mouseout', mouseout);
   tokens.on('click', function(it){
-    var next, newExpr, layout, current, len, i, to$;
+    var next, newExpr, last, current, len, i, to$, to1$, layout;
     next = expr[it.postorder + 1];
     if (it.operand && (next != null && next.operand)) {
       newExpr = move[0](expr, it, next);
-      layout = layoutFrom(newExpr);
-      displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
-    } else if (it.operator && it.parent != null) {
-      if (next != null && valid(expr, it, next)) {
+    } else if (it.operator) {
+      if (next != null && (next != null && next.operand) && valid(expr, it, next)) {
         newExpr = move[2](expr, it, next);
       } else {
+        last = expr[it.postorder - 1];
+        if (!(last != null && last.operand)) {
+          return;
+        }
         current = it.node;
         len = 0;
         for (i = it.postorder + 1, to$ = expr.length; i < to$; ++i) {
@@ -365,11 +367,31 @@ function displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoo
           }
         }
         newExpr = move[1](expr, it.postorder, len);
+        console.log('moving 2');
       }
+    } else if (it.operand) {
+      for (i = it.postorder + 1, to1$ = expr.length; i < to1$; ++i) {
+        if (expr[i].operand) {
+          newExpr = move[0](expr, it, expr[i]);
+          break;
+        }
+      }
+    }
+    if (newExpr != null) {
+      oldExpr = expr;
       layout = layoutFrom(newExpr);
       displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
     }
   });
+}
+function undo(){
+  var tmp, layout;
+  tmp = expr;
+  expr = oldExpr;
+  oldExpr = tmp;
+  console.log(oldExpr, tmp);
+  layout = layoutFrom(expr);
+  displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
 }
 function layoutFrom(expr){
   var stack, next, right, left;
@@ -423,15 +445,86 @@ function valid(expr, alpha1, alpha2){
     return false;
   }
   if (alpha1.operand && alpha2.operator) {
-    console.log(alpha1.postorder);
-    console.log(2 * alpha2.d);
     return 2 * alpha2.d < alpha1.postorder;
   } else {
     return true;
   }
 }
+function cost(layout){
+  return layout.width * layout.height;
+}
+R = 0.85;
+function nextTemperature(oldTemp){
+  return R * oldTemp;
+}
+function chooseMove(expr){
+  var candidates, compLen, i, to$, compStart, last, start, to1$, len, to2$;
+  candidates = [];
+  compLen = 0;
+  for (i = 0, to$ = expr.length - 1; i < to$; ++i) {
+    if (expr[i].operand && expr[i + 1].operand) {
+      candidates.push({
+        move: 0,
+        args: [expr[i], expr[i + 1]]
+      });
+    }
+    if (expr[i].operator && expr[i].node !== last) {
+      compStart = i;
+      compLen++;
+      last = expr[i].node;
+    }
+    if (expr[i].operand) {
+      if (compLen > 0) {
+        for (start = compStart, to1$ = compStart + compLen; start < to1$; ++start) {
+          for (len = 1, to2$ = compStart + compLen - start; len <= to2$; ++len) {
+            candidates.push({
+              move: 1,
+              args: [start, len]
+            });
+          }
+        }
+      }
+      last = void 8;
+      compLen = 0;
+    }
+    if (valid(expr, expr[i], expr[i + 1])) {
+      candidates.push({
+        move: 2,
+        args: [expr[i], expr[i + 1]]
+      });
+    }
+  }
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+P = 0.95;
+function intialTemp(layout){
+  var expr, c, moves, res$, i, m, newC, sum, avg;
+  expr = postorder(layout);
+  c = cost(layout);
+  res$ = [];
+  for (i = 0; i < 100; ++i) {
+    m = chooseMove(expr);
+    expr = move[m.move].apply(move, [expr].concat(slice$.call(m.args)));
+    layout = layoutFrom(expr);
+    calculateSize(layout);
+    newC = cost(layout);
+    if (newC > c) {
+      res$.push(newC - c);
+    }
+  }
+  moves = res$;
+  sum = moves.reduce(function(a, b){
+    return a + b;
+  });
+  avg = sum / moves.length;
+  return -avg / Math.log(P);
+}
+function anneal(layout){
+  var temp;
+  temp = initialTemp(layout);
+}
 document.addEventListener('DOMContentLoaded', function(){
-  var layoutRoot, rectRoot, lineRoot, exprRoot, treeRoot, linkRoot, nodeRoot, chips, layout;
+  var chips, layout, history;
   layoutRoot = d3.select('#slicing-rectangle').append('svg:svg').attr({
     width: 300,
     height: 300
@@ -475,4 +568,6 @@ document.addEventListener('DOMContentLoaded', function(){
   ];
   layout = initialLayout(chips);
   displayLayout(layout, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot);
+  history = d3.select('#history');
+  document.getElementById('undo').onclick = undo;
 });
