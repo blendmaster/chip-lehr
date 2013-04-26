@@ -36,10 +36,10 @@ function initialExpr(chips){
   return expr;
 }
 function unpackExpr(exprString, chips){
-  var ops, i, len$, s, operator, operand, id, chip, results$ = [];
+  var ops, i, ref$, len$, s, operator, operand, id, chip, results$ = [];
   ops = 0;
-  for (i = 0, len$ = exprString.length; i < len$; ++i) {
-    s = exprString[i];
+  for (i = 0, len$ = (ref$ = exprString.split(/,/)).length; i < len$; ++i) {
+    s = ref$[i];
     operator = s === 'H' || s === 'V';
     operand = !operator;
     id = operand
@@ -60,7 +60,7 @@ function unpackExpr(exprString, chips){
 function packExpr(it){
   return it.map(function(it){
     return it.node;
-  }).join('');
+  }).join(',');
 }
 function packChips(it){
   return it.map(function(it){

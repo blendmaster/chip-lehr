@@ -413,11 +413,13 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   };
   $('randomize').onclick = function(){
-    var newChips, res$, i, expr;
+    var no, newChips, res$, i, to$, expr;
+    no = parseInt($('rand-no').value, 10);
+    $('rand-no').value = no;
     res$ = [];
-    for (i = 0; i < 10; ++i) {
+    for (i = 0, to$ = Math.max(10, Math.min(25, no)); i < to$; ++i) {
       res$.push({
-        width: Math.random() * 10 | 0 + 1,
+        width: Math.random() * 15 | 0 + 1,
         height: Math.random() * 10 | 0 + 1
       });
     }

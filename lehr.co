@@ -391,9 +391,11 @@ document.add-event-listener \DOMContentLoaded !->
       alert e.message
 
   $ \randomize .onclick = !->
-    new-chips = for i til 10
-      width: (Math.random! * 10)|0 + 1
-      height: (Math.random! * 10)|0 + 1
+    no = parse-int ($ \rand-no .value), 10
+    $ \rand-no .value = no
+    new-chips = for i til Math.max 10, (Math.min 25, no)
+      width: (Math.random! * 15)|0 + 1
+      height: (Math.random! * 15)|0 + 1
 
     $ \chips .value = new-chips.map -> "#{it.width}x#{it.height}"
       .join '    '
