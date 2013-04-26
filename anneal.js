@@ -116,7 +116,7 @@ function cost(expr){
   calculateSize(tree);
   return tree.width * tree.height;
 }
-R = 0.85;
+R = 0.9;
 function nextTemperature(oldTemp){
   return R * oldTemp;
 }
@@ -208,7 +208,7 @@ function anneal(chips, expr, temp){
   maxMoves = 2 * N;
   log(maxMoves);
   overallTotal = 0;
-  while (temp > 0.1) {
+  while (temp > 0.01) {
     accepted = 0;
     downhill = 0;
     total = 0;
