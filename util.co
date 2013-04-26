@@ -43,12 +43,15 @@ function unpack-hash
     chips = unpack-chips that
   else
     chips =
-      * width: 10 height: 10
+      * width: 10 height: 2
       * width:  6 height: 12
-      * width:  3 height:  2
-      * width:  5 height:  3
-      * width:  5 height:  3
-      * width:  5 height:  3
+      * width:  3 height:  8
+      * width:  5 height:  6
+      * width:  2 height:  9
+      * width:  3 height:  11
+      * width:  2 height:  8
+      * width:  1 height:  10
+      * width:  2 height:  10
 
   expr =
     if data?expr
@@ -135,8 +138,6 @@ function expand-rects root, size ? root{width, height}
       half = root.height / 2
       stretch = 0
       stretch = half if left.height < half and right.height < half
-
-      console.log left, right, stretch
 
       expand-rects left,
         height: Math.min stretch, (root.height - right.height)

@@ -48,7 +48,15 @@ move =
   # complement some chain of non-zero length
   * function move2 expr, chain-start, len
       expr.map(-> {...it})
-        for i from chain-start to chain-start + len
+        for i from chain-start til chain-start + len
+          if &[i]operand
+            log i
+            log expr
+            log chain-start
+            log len
+            log &[i]
+            log expr.slice chain-start, chain-start + len
+            throw new Error "you fucked up" 
           &[i]node = complement[<>]
 
   # swap two adjacent operand and operator
@@ -90,16 +98,14 @@ function next-temperature old-temp
 function choose-move expr
   # enumerate all candidates for chosen move
   candidates = []
-  switch m = Math.floor Math.random! * 3
+  switch m = 1 # Math.floor Math.random! * 3
   case 0 # move 1
     var last-operand
-    for i til expr.length - 1
-      cur = expr[i]
-      next = expr[i + 1]
+    for cur of expr
       if cur.operand
         if last-operand
           candidates.push [last-operand, cur]
-          last-operand = cur
+        last-operand = cur
   case 1
     var start-chain
     chain-len = 0
@@ -129,10 +135,13 @@ function choose-move expr
         if next.operand and valid expr, cur, next
           candidates.push [cur, next]
 
-  return move[m] expr, ...candidates[Math.floor Math.random! * candidates.length]
+  if candidates.length is 0
+    choose-move expr
+  else
+    move[m] expr, ...candidates[Math.floor Math.random! * candidates.length]
 
 const P = 0.95
-function intial-temp expr
+function initial-temp expr
   # perform some random moves
   c = cost expr
   moves = for i til 100
@@ -143,15 +152,17 @@ function intial-temp expr
       new-c - c
 
   # compute the average of chance in cost in uphill moves.
-  sum = moves.reduce (a, b) -> a + b
+  sum = moves.reduce ((a, b) -> a + b), 0
   avg = sum / moves.length
 
   # T = -avg / ln(P)
   return -avg / Math.log(P)
 
-# section 7 in the paper
-!function anneal chips, expr
+# constants from section 7 in the paper
+function anneal chips, expr, temp
   temp = initial-temp expr
+
+  post-message type: \init temp: temp
 
   cur = best = expr
   cur-cost = best-cost = cost expr
@@ -159,6 +170,8 @@ function intial-temp expr
   # number of possible moves (M1, M2, M3), upper bound
   N = 2 * (expr.length + chips.length)
   max-moves = 2 * N
+
+  log max-moves
 
   overall-total = 0
 
@@ -196,21 +209,21 @@ function intial-temp expr
       break
 
     # logging
+    progress {cur-cost, best-cost, best, temp, moves: overall-total}
 
   return best
 
 function make-move temp, cur-cost, new-cost
   Math.exp -(new-cost - cur-cost) / temp
-  
       
 @onmessage = !({{chips, expr}: data}) ->
-  best-expr = anneal chips, expr
+  anneal chips, expr
 
   # transfer back to main thread
-  post-message {type: \done, best-expr}
+  post-message type: \done
 
 function progress
-  post-message {type: \progress value: it}
+  post-message {type: \progress, ...it}
 
 function log
-  post-message {type: \log message: it}
+  post-message type: \log message: it

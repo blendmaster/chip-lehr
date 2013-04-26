@@ -6,9 +6,10 @@ var layout-border
 !function display-layout expr
   # calculate d-numbers
   d-number expr
-
+  console.log expr
   # calculate and decorate layout tree
   layout = tree-from expr
+  console.log layout
   preordered  = preorder  layout
   postordered = postorder layout
 
@@ -22,6 +23,8 @@ var layout-border
   calculate-size layout
   expand-rects layout
   slicing-svg-layout = flat-svg-layout layout
+
+  $ \area .value = layout.width * layout.height
 
   # fit layout to 300, 300
   max-dim = 10 * Math.max layout.width, layout.height
@@ -124,7 +127,7 @@ var layout-border
     g
       &append \svg:circle .attr do
         class : \node-dot
-        r     : 20
+        r     : 10
       &append \svg:text
         .attr class: \node-text
 
@@ -137,8 +140,14 @@ var layout-border
   circles = node-group.select \.node-dot
 
   # draw polish expr
+
+  max-width = document.documentElement.clientWidth - 100
+  expr-width = Math.min max-width, expr.length * 50
+
+  char-width = expr-width / expr.length
+
   expr-root.attr do
-    width: expr.length * 50
+    width: expr-width
     height: 100
   tokens = expr-root.select-all \.token .data postordered, -> it.id
   tokens
@@ -149,17 +158,21 @@ var layout-border
         &append \svg:rect
           .attr do
             class: \token-rect
-            width: 50
             height: 50
-            x: -25
+            x: -(char-width / 2)
             y: -25
         &append \text
           .attr class: \token-text
     &select \.token-text
       .text -> it.node
+      .transition!duration 750
+      .style \font-size -> "#{Math.max 8, (Math.min 36, char-width / 2)}px"
+    &select \.token-rect
+      .transition!duration 750 .attr do
+        width: char-width
     &transition!duration 750
       .attr do
-        transform: (_, i) -> "translate(#{i * 50 + 25}, 50)"
+        transform: (_, i) -> "translate(#{i * char-width + char-width / 2}, 50)"
       .each \end ->
         # highlight from expr, and clear existing highlight
         d3.select this
@@ -212,7 +225,6 @@ var layout-border
 
     move-no = $$ 'input[type=radio]' .filter(-> it.checked)0.value
 
-    console.log move-no
     switch move-no
     case \0 # move 1
       if it.operand
@@ -222,7 +234,7 @@ var layout-border
           new-expr = move.0 expr, it, next
     case \1 # move 2
       last = expr[it.idx - 1]
-      if last!? or last.operand
+      if it.operator and (last!? or last.operand)
         current = it.node
         len = 0
         for i from it.idx + 1 til expr.length
@@ -275,18 +287,23 @@ move =
 function valid expr, alpha1, alpha2
   alpha3 = expr[alpha2.idx + 1]
   if alpha3? and alpha3.node is alpha1.node
-    return false
-
-  if alpha1.operand and alpha2.operator
-    2 * alpha2.d < alpha1.idx + 1 # 2d_(i-1) < i
+    false
   else
-    true
+    if alpha1.operand and alpha2.operator
+      console.log 2 * alpha2.d, alpha1.idx
+      2 * alpha2.d < alpha1.idx + 1 # 2d_(i-1) < i
+    else
+      true
+
 window.add-event-listener \hashchange !->
   data = unpack-hash!
 
   {chips} := data
 
   display-layout data.expr
+
+# annealing state
+annealing = {}
 
 document.add-event-listener \DOMContentLoaded !->
 
@@ -328,5 +345,74 @@ document.add-event-listener \DOMContentLoaded !->
 
   display-layout data.expr
 
-  history = d3.select \#history
+  # set up annealing listeners
+  annealing <<<
+    moves-el: $ \moves
+    last-cost-el: $ \last-cost
+    best-cost-el: $ \best-cost
+
+    temp-meter-el: $ \temp-meter
+
+    start: $ \start
+    stop: $ \stop
+
+  # stupid browser state
+  annealing.start.disabled = false
+  annealing.stop.disabled = true
+  annealing.moves-el.value = 0
+  annealing.last-cost-el.value = 0
+  annealing.best-cost-el.value = 0
+
+  annealing.start.onclick = start-annealing
+  annealing.stop.onclick = stop-annealing
+
+function start-annealing
+  console.log \starting
+  {expr} = unpack-hash!
+  tree = tree-from expr
+  calculate-size tree
+
+  a = annealing
+  a.moves-el.value = 0
+  a.last-cost-el.value = tree.width * tree.height
+  a.best-cost-el.value = tree.width * tree.height
+
+  a.start.disabled = true
+  a.stop.disabled = false
+
+  a.worker = new Worker \anneal.js
+    &onmessage = anneal-message
+
+    &post-message {chips, expr}
+
+function stop-annealing
+  annealing.worker.terminate!
+
+  a = annealing
+  a.start.disabled = false
+  a.stop.disabled = true
+
+  console.log a.best-expr
+
+  pack-hash a.best-expr, chips
+
+function anneal-message {data}
+  a = annealing
+  switch data.type
+  case \log
+    console.log data.message
+  case \init
+    console.log data
+    a.temp-meter-el.max = data.temp
+  case \progress
+    a.best-expr = data.best
+
+    a.moves-el.value = data.moves
+    a.last-cost-el.value = data.cur-cost
+    a.best-cost-el.value = data.best-cost
+    a.temp-meter-el
+      &value = data.temp
+      &textContent = data.temp
+  case \done
+    stop-annealing!
 

@@ -1,8 +1,10 @@
-var chips, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move;
+var chips, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move, annealing;
 function displayLayout(expr){
-  var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
+  var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, maxWidth, exprWidth, charWidth, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
   dNumber(expr);
+  console.log(expr);
   layout = treeFrom(expr);
+  console.log(layout);
   preordered = preorder(layout);
   postordered = postorder(layout);
   for (i = 0, len$ = postordered.length; i < len$; ++i) {
@@ -16,6 +18,7 @@ function displayLayout(expr){
   calculateSize(layout);
   expandRects(layout);
   slicingSvgLayout = flatSvgLayout(layout);
+  $('area').value = layout.width * layout.height;
   maxDim = 10 * Math.max(layout.width, layout.height);
   scale = 300 / maxDim;
   layoutRoot.transition().duration(750).attr('transform', "scale(" + scale + ")");
@@ -142,7 +145,7 @@ function displayLayout(expr){
   x6$ = g;
   x6$.append('svg:circle').attr({
     'class': 'node-dot',
-    r: 20
+    r: 10
   });
   x6$.append('svg:text').attr({
     'class': 'node-text'
@@ -156,8 +159,11 @@ function displayLayout(expr){
     return "translate(" + x + ", " + y + ")";
   });
   circles = nodeGroup.select('.node-dot');
+  maxWidth = document.documentElement.clientWidth - 100;
+  exprWidth = Math.min(maxWidth, expr.length * 50);
+  charWidth = exprWidth / expr.length;
   exprRoot.attr({
-    width: expr.length * 50,
+    width: exprWidth,
     height: 100
   });
   tokens = exprRoot.selectAll('.token').data(postordered, function(it){
@@ -169,9 +175,8 @@ function displayLayout(expr){
   x9$ = g;
   x9$.append('svg:rect').attr({
     'class': 'token-rect',
-    width: 50,
     height: 50,
-    x: -25,
+    x: -(charWidth / 2),
     y: -25
   });
   x9$.append('text').attr({
@@ -179,10 +184,15 @@ function displayLayout(expr){
   });
   x7$.select('.token-text').text(function(it){
     return it.node;
+  }).transition().duration(750).style('font-size', function(){
+    return Math.max(8, Math.min(36, charWidth / 2)) + "px";
+  });
+  x7$.select('.token-rect').transition().duration(750).attr({
+    width: charWidth
   });
   x7$.transition().duration(750).attr({
     transform: function(_, i){
-      return "translate(" + (i * 50 + 25) + ", 50)";
+      return "translate(" + (i * charWidth + charWidth / 2) + ", 50)";
     }
   }).each('end', function(){
     return d3.select(this).on('mouseover', mouseover).on('mouseout', mouseout);
@@ -226,7 +236,6 @@ function displayLayout(expr){
     moveNo = $$('input[type=radio]').filter(function(it){
       return it.checked;
     })[0].value;
-    console.log(moveNo);
     switch (moveNo) {
     case '0':
       if (it.operand) {
@@ -241,7 +250,7 @@ function displayLayout(expr){
       break;
     case '1':
       last = expr[it.idx - 1];
-      if (last == null || last.operand) {
+      if (it.operator && (last == null || last.operand)) {
         current = it.node;
         len = 0;
         for (i = it.idx + 1, to$ = expr.length; i < to$; ++i) {
@@ -316,11 +325,13 @@ function valid(expr, alpha1, alpha2){
   alpha3 = expr[alpha2.idx + 1];
   if (alpha3 != null && alpha3.node === alpha1.node) {
     return false;
-  }
-  if (alpha1.operand && alpha2.operator) {
-    return 2 * alpha2.d < alpha1.idx + 1;
   } else {
-    return true;
+    if (alpha1.operand && alpha2.operator) {
+      console.log(2 * alpha2.d, alpha1.idx);
+      return 2 * alpha2.d < alpha1.idx + 1;
+    } else {
+      return true;
+    }
   }
 }
 window.addEventListener('hashchange', function(){
@@ -329,8 +340,9 @@ window.addEventListener('hashchange', function(){
   chips = data.chips;
   displayLayout(data.expr);
 });
+annealing = {};
 document.addEventListener('DOMContentLoaded', function(){
-  var data, history;
+  var data;
   layoutRoot = d3.select('#slicing-rectangle').append('svg:svg').attr({
     width: 300,
     height: 300
@@ -359,8 +371,73 @@ document.addEventListener('DOMContentLoaded', function(){
   data = unpackHash();
   chips = data.chips;
   displayLayout(data.expr);
-  history = d3.select('#history');
+  annealing.movesEl = $('moves');
+  annealing.lastCostEl = $('last-cost');
+  annealing.bestCostEl = $('best-cost');
+  annealing.tempMeterEl = $('temp-meter');
+  annealing.start = $('start');
+  annealing.stop = $('stop');
+  annealing.start.disabled = false;
+  annealing.stop.disabled = true;
+  annealing.movesEl.value = 0;
+  annealing.lastCostEl.value = 0;
+  annealing.bestCostEl.value = 0;
+  annealing.start.onclick = startAnnealing;
+  annealing.stop.onclick = stopAnnealing;
 });
+function startAnnealing(){
+  var expr, tree, a, x0$;
+  console.log('starting');
+  expr = unpackHash().expr;
+  tree = treeFrom(expr);
+  calculateSize(tree);
+  a = annealing;
+  a.movesEl.value = 0;
+  a.lastCostEl.value = tree.width * tree.height;
+  a.bestCostEl.value = tree.width * tree.height;
+  a.start.disabled = true;
+  a.stop.disabled = false;
+  x0$ = a.worker = new Worker('anneal.js');
+  x0$.onmessage = annealMessage;
+  x0$.postMessage({
+    chips: chips,
+    expr: expr
+  });
+  return x0$;
+}
+function stopAnnealing(){
+  var a;
+  annealing.worker.terminate();
+  a = annealing;
+  a.start.disabled = false;
+  a.stop.disabled = true;
+  console.log(a.bestExpr);
+  return packHash(a.bestExpr, chips);
+}
+function annealMessage(arg$){
+  var data, a, x0$;
+  data = arg$.data;
+  a = annealing;
+  switch (data.type) {
+  case 'log':
+    return console.log(data.message);
+  case 'init':
+    console.log(data);
+    return a.tempMeterEl.max = data.temp;
+  case 'progress':
+    a.bestExpr = data.best;
+    a.movesEl.value = data.moves;
+    a.lastCostEl.value = data.curCost;
+    a.bestCostEl.value = data.bestCost;
+    x0$ = a.tempMeterEl;
+    x0$.value = data.temp;
+    x0$.textContent = data.temp;
+    return x0$;
+    break;
+  case 'done':
+    return stopAnnealing();
+  }
+}
 function import$(obj, src){
   var own = {}.hasOwnProperty;
   for (var key in src) if (own.call(src, key)) obj[key] = src[key];

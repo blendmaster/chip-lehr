@@ -5,10 +5,14 @@
 <link rel=stylesheet href=tree.css>
 
 <h1><a href=index.html>Chip Lehr</a></h1>
-<p>Chip Lehr is a demonstration of the Simulated Annealing approach to floorplanning presented in <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.123.9831&rep=rep1&type=pdf"><i>A New Algorithm for Floorplanning</i> (1986)</a>. </p>
+<p>Chip Lehr is a demonstration of the Simulated Annealing approach to floorplanning presented in <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.123.9831&rep=rep1&type=pdf"><i>A New Algorithm for Floorplanning</i> (1986)</a>, with some simplifications.</p>
+<p>Hover over parts of the layout, tree, or expression to highlight corresponding versions.
+   To go back to a previous expression after a move, use the back button of
+   your browser. Click the title to reset to the initial expression.
 
 <section id=slicing-rectangle>
-  <h2>Slicing Rectangle</h2>
+  <h2>Slicing Layout</h2>
+  <p>Area: <input type=number readonly id=area></p>
   </section>
 
 <section id=slicing-tree>
@@ -17,12 +21,12 @@
 
 <section id=polish-expression>
   <h2>Polish Expression</h2>
-  <p>Click part of the expression to make a move.</p>
+  <p>Click part of the expression to make a move if it is valid.</p>
   <div id=controls>Move Type:
     <form id=move-type>
-      <label><input type=radio name=move value=0 checked>(M1) Swap two operands</label><br>
-      <label><input type=radio name=move value=1>(M2) Complement chain</label><br>
-      <label><input type=radio name=move value=2>(M3) Swap operand and operator</label>
+      <label><input type=radio name=move value=0 checked>(M1) Swap two operands (click the first)</label><br>
+      <label><input type=radio name=move value=1>(M2) Complement chain (click the start)</label><br>
+      <label><input type=radio name=move value=2>(M3) Swap operand and operator (click the first)</label>
     </form>
   </div>
 </section>
@@ -31,19 +35,14 @@
   <h2>Annealing</h2>
   <div id=controls>
     <button id=start>Start</button>
-    <button id=pause>Pause</button>
-    <button id=step>Step</button>
-    <button id=reset>Reset</button>
+    <button id=stop disabled>Stop</button>
   </div>
-  <div><progress hidden id=anneal-progress>Progress</progress></div>
-  <div id=temp-container hidden>
-    <span id=temp-val>
-    <meter hidden id=temp-meter>Temperature</meter>
+    Temperature: <meter min=0 max=10 id=temp-meter>Temperature</meter>
   </div>
   <div id=stats>
-    <label>Moves: <input id="moves" type="number" readonly></label><br>
-    <label>Last Area:<input id="last-cost" type="number" readonly></label><br>
-    <label>Best Area:<input id="best-cost" type="number" readonly></label>
+    <label>Moves: <input id="moves" type="number" value=0 readonly></label><br>
+    <label>Last Area:<input id="last-cost" type="number" value=0 readonly></label><br>
+    <label>Best Area:<input id="best-cost" type="number" value=0 readonly></label>
   </div>
 
 

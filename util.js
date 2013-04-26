@@ -92,22 +92,31 @@ function unpackHash(){
     chips = [
       {
         width: 10,
-        height: 10
+        height: 2
       }, {
         width: 6,
         height: 12
       }, {
         width: 3,
-        height: 2
+        height: 8
       }, {
         width: 5,
-        height: 3
+        height: 6
       }, {
-        width: 5,
-        height: 3
+        width: 2,
+        height: 9
       }, {
-        width: 5,
-        height: 3
+        width: 3,
+        height: 11
+      }, {
+        width: 2,
+        height: 8
+      }, {
+        width: 1,
+        height: 10
+      }, {
+        width: 2,
+        height: 10
       }
     ];
   }
@@ -234,7 +243,6 @@ function expandRects(root, size){
       if (left.height < half && right.height < half) {
         stretch = half;
       }
-      console.log(left, right, stretch);
       expandRects(left, {
         height: Math.min(stretch, root.height - right.height),
         width: root.width
