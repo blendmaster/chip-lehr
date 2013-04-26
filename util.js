@@ -68,7 +68,7 @@ function packChips(it){
   }).join(' ');
 }
 function unpackChips(it){
-  return it.split(/\s+/).map(function(it){
+  return it.trim().split(/\s+/).map(function(it){
     var ref$, _, width, height;
     ref$ = /(\d+)x(\d+)/.exec(it), _ = ref$[0], width = ref$[1], height = ref$[2];
     return {
@@ -239,10 +239,7 @@ function expandRects(root, size){
     switch (root.node) {
     case 'H':
       half = root.height / 2;
-      stretch = 0;
-      if (left.height < half && right.height < half) {
-        stretch = half;
-      }
+      stretch = half;
       expandRects(left, {
         height: Math.min(stretch, root.height - right.height),
         width: root.width
@@ -253,17 +250,14 @@ function expandRects(root, size){
       });
     case 'V':
       half = root.width / 2;
-      stretch = 0;
-      if (left.width < half && right.width < half) {
-        stretch = half;
-      }
+      stretch = half;
       expandRects(left, {
         height: root.height,
-        width: Math.max(stretch, root.width - right.width)
+        width: Math.min(stretch, root.width - right.width)
       });
       return expandRects(right, {
         height: root.height,
-        width: Math.max(stretch, root.width - left.width)
+        width: Math.min(stretch, root.width - left.width)
       });
     }
   }

@@ -1,10 +1,8 @@
-var chips, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move, annealing;
+var chips, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move, annealing, last;
 function displayLayout(expr){
   var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, maxWidth, exprWidth, charWidth, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
   dNumber(expr);
-  console.log(expr);
   layout = treeFrom(expr);
-  console.log(layout);
   preordered = preorder(layout);
   postordered = postorder(layout);
   for (i = 0, len$ = postordered.length; i < len$; ++i) {
@@ -30,6 +28,7 @@ function displayLayout(expr){
     return it.id;
   });
   x0$ = rectangles;
+  x0$.exit().remove();
   x1$ = x0$.enter();
   group = x1$.append('svg:g').attr('class', 'layout-area').attr({
     transform: function(arg$){
@@ -83,7 +82,7 @@ function displayLayout(expr){
   x0$.select('.layout-text').text(function(it){
     return it.node;
   }).transition().duration(750).style('font-size', function(it){
-    return Math.max(8, Math.min(36, it.height * 10)) + "px";
+    return Math.max(8, Math.min(36, it.height * 10, it.width * 10)) + "px";
   }).attr({
     x: function(it){
       return it.width * 10 / 2;
@@ -96,6 +95,7 @@ function displayLayout(expr){
     return it.id;
   });
   x3$ = lines;
+  x3$.exit().remove();
   x3$.enter().append('svg:line').attr('class', 'layout-line');
   x3$.attr({
     id: function(it){
@@ -137,6 +137,7 @@ function displayLayout(expr){
   nodeGroup = nodeRoot.selectAll('g.node').data(nodes, function(it){
     return it.id;
   });
+  nodeGroup.exit().remove();
   x5$ = nodeGroup.enter();
   g = x5$.append('svg:g').attr({
     'class': 'node',
@@ -170,6 +171,7 @@ function displayLayout(expr){
     return it.id;
   });
   x7$ = tokens;
+  x7$.exit().remove();
   x8$ = x7$.enter();
   g = x8$.append('svg:g').attr('class', 'token').attr('transform', 'translate(0,0)');
   x9$ = g;
@@ -327,7 +329,6 @@ function valid(expr, alpha1, alpha2){
     return false;
   } else {
     if (alpha1.operand && alpha2.operator) {
-      console.log(2 * alpha2.d, alpha1.idx);
       return 2 * alpha2.d < alpha1.idx + 1;
     } else {
       return true;
@@ -370,6 +371,42 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   data = unpackHash();
   chips = data.chips;
+  $('chips').value = chips.map(function(it){
+    return it.width + "x" + it.height;
+  }).join('    ');
+  $('load').onclick = function(){
+    var loadedChips, i$, x0$, len$, expr, e;
+    try {
+      loadedChips = unpackChips($('chips').value);
+      for (i$ = 0, len$ = loadedChips.length; i$ < len$; ++i$) {
+        x0$ = loadedChips[i$];
+        if (!(x0$.width && x0$.height)) {
+          throw new Error("I don't think those are valid chips...");
+        }
+      }
+      expr = initialExpr(loadedChips);
+      packHash(expr, loadedChips);
+    } catch (e$) {
+      e = e$;
+      alert(e.message);
+    }
+  };
+  $('randomize').onclick = function(){
+    var newChips, res$, i, expr;
+    res$ = [];
+    for (i = 0; i < 10; ++i) {
+      res$.push({
+        width: Math.random() * 10 | 0 + 1,
+        height: Math.random() * 10 | 0 + 1
+      });
+    }
+    newChips = res$;
+    $('chips').value = newChips.map(function(it){
+      return it.width + "x" + it.height;
+    }).join('    ');
+    expr = initialExpr(newChips);
+    packHash(expr, newChips);
+  };
   displayLayout(data.expr);
   annealing.movesEl = $('moves');
   annealing.lastCostEl = $('last-cost');
@@ -387,7 +424,6 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 function startAnnealing(){
   var expr, tree, a, x0$;
-  console.log('starting');
   expr = unpackHash().expr;
   tree = treeFrom(expr);
   calculateSize(tree);
@@ -411,9 +447,9 @@ function stopAnnealing(){
   a = annealing;
   a.start.disabled = false;
   a.stop.disabled = true;
-  console.log(a.bestExpr);
   return packHash(a.bestExpr, chips);
 }
+last = Date.now();
 function annealMessage(arg$){
   var data, a, x0$;
   data = arg$.data;
@@ -422,8 +458,9 @@ function annealMessage(arg$){
   case 'log':
     return console.log(data.message);
   case 'init':
-    console.log(data);
     return a.tempMeterEl.max = data.temp;
+  case 'new-expr':
+    return packHash(a.bestExpr, chips);
   case 'progress':
     a.bestExpr = data.best;
     a.movesEl.value = data.moves;
@@ -432,7 +469,10 @@ function annealMessage(arg$){
     x0$ = a.tempMeterEl;
     x0$.value = data.temp;
     x0$.textContent = data.temp;
-    return x0$;
+    if (Date.now() - last > 1000) {
+      last = Date.now();
+      return packHash(data.cur, chips);
+    }
     break;
   case 'done':
     return stopAnnealing();

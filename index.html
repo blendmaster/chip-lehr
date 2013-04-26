@@ -45,8 +45,20 @@
     <label>Best Area:<input id="best-cost" value=0 readonly></label>
   </div>
 
-
   <div id=history></div>
+</section>
+
+<section id=edit-chips>
+  <h2>Edit Chips</h2>
+  <p>Edit the chip sizes here. Enter width/height pairs as integers in the
+    pattern WxH, separated by whitespace.</p>
+  <div>
+  <button id=load>Load</button>
+  <button id=randomize>Randomize</button>
+  </div>
+  <div>
+    <textarea id=chips></textarea>
+  </div>
 </section>
 
 <script src=http://d3js.org/d3.v3.min.js></script>

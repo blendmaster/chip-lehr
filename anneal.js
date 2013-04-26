@@ -116,14 +116,14 @@ function cost(expr){
   calculateSize(tree);
   return tree.width * tree.height;
 }
-R = 0.9;
+R = 0.95;
 function nextTemperature(oldTemp){
   return R * oldTemp;
 }
 function chooseMove(expr){
   var candidates, m, lastOperand, i$, len$, cur, startChain, chainLen, i, to$, next, to1$;
   candidates = [];
-  switch (m = 1) {
+  switch (m = Math.floor(Math.random() * 3)) {
   case 0:
     for (i$ = 0, len$ = expr.length; i$ < len$; ++i$) {
       cur = expr[i$];
@@ -176,7 +176,7 @@ function chooseMove(expr){
     return move[m].apply(move, [expr].concat(slice$.call(candidates[Math.floor(Math.random() * candidates.length)])));
   }
 }
-P = 0.95;
+P = 0.98;
 function initialTemp(expr){
   var c, moves, res$, i, m, newC, sum, avg;
   c = cost(expr);
@@ -193,10 +193,14 @@ function initialTemp(expr){
     return a + b;
   }, 0);
   avg = sum / moves.length;
+  log('avg');
+  log(avg);
+  log('temp');
+  log(-avg / Math.log(P));
   return -avg / Math.log(P);
 }
 function anneal(chips, expr, temp){
-  var cur, best, curCost, bestCost, N, maxMoves, overallTotal, accepted, downhill, total, i, m, c, last;
+  var cur, best, curCost, bestCost, N, maxMoves, overallTotal, accepted, downhill, total, i, m, c;
   temp = initialTemp(expr);
   postMessage({
     type: 'init',
@@ -220,6 +224,18 @@ function anneal(chips, expr, temp){
         if (c < bestCost) {
           best = m;
           bestCost = c;
+          cur = m;
+          progress({
+            curCost: curCost,
+            bestCost: bestCost,
+            best: best,
+            cur: cur,
+            temp: temp,
+            moves: overallTotal
+          });
+          postMessage({
+            type: 'new-best'
+          });
         }
         cur = m;
         curCost = c;
@@ -227,7 +243,7 @@ function anneal(chips, expr, temp){
         downhill++;
       } else {
         if (makeMove(temp, curCost, c)) {
-          last = m;
+          cur = m;
           curCost = c;
           accepted++;
         }
@@ -244,6 +260,7 @@ function anneal(chips, expr, temp){
     progress({
       curCost: curCost,
       bestCost: bestCost,
+      cur: cur,
       best: best,
       temp: temp,
       moves: overallTotal
@@ -252,7 +269,7 @@ function anneal(chips, expr, temp){
   return best;
 }
 function makeMove(temp, curCost, newCost){
-  return Math.exp(-(newCost - curCost) / temp);
+  return Math.exp(-(newCost - curCost) / temp) > Math.random();
 }
 this.onmessage = function(arg$){
   var data, chips, expr;

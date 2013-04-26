@@ -6,10 +6,8 @@ var layout-border
 !function display-layout expr
   # calculate d-numbers
   d-number expr
-  console.log expr
   # calculate and decorate layout tree
   layout = tree-from expr
-  console.log layout
   preordered  = preorder  layout
   postordered = postorder layout
 
@@ -41,6 +39,7 @@ var layout-border
     .data slicing-svg-layout.rectangles, -> it.id
 
   rectangles
+    &exit!remove!
     &enter!
       group = &append \svg:g .attr \class \layout-area
         .attr transform: ({rect-x, rect-y}) ->
@@ -72,7 +71,8 @@ var layout-border
     &select \.layout-text
       .text -> it.node
       .transition!duration 750
-      .style \font-size -> "#{Math.max 8, (Math.min 36, it.height * 10)}px"
+      .style \font-size -> 
+        "#{Math.max 8, (Math.min 36, it.height * 10, it.width * 10)}px"
       .attr do
         x: -> it.width * 10 / 2
         y: -> it.height * 10 / 2
@@ -80,6 +80,7 @@ var layout-border
   lines = line-root.select-all \line.layout-line
     .data slicing-svg-layout.slice-lines, -> it.id
   lines
+    &exit!remove!
     &enter!append \svg:line
       .attr \class \layout-line
     &attr do
@@ -120,6 +121,7 @@ var layout-border
   node-group = node-root.select-all \g.node
     .data nodes, -> it.id
 
+  node-group.exit!remove!
   node-group.enter!
     g = &append \svg:g .attr do
       class: \node
@@ -151,6 +153,7 @@ var layout-border
     height: 100
   tokens = expr-root.select-all \.token .data postordered, -> it.id
   tokens
+    &exit!remove!
     &enter!
       g = &append \svg:g .attr \class \token
         .attr \transform 'translate(0,0)'
@@ -290,7 +293,6 @@ function valid expr, alpha1, alpha2
     false
   else
     if alpha1.operand and alpha2.operator
-      console.log 2 * alpha2.d, alpha1.idx
       2 * alpha2.d < alpha1.idx + 1 # 2d_(i-1) < i
     else
       true
@@ -343,6 +345,32 @@ document.add-event-listener \DOMContentLoaded !->
 
   {chips} := data
 
+  $ \chips .value = chips.map -> "#{it.width}x#{it.height}"
+    .join '    '
+
+  $ \load .onclick = !->
+    try
+      loaded-chips = unpack-chips $(\chips).value
+      # sanity check
+      for loaded-chips
+        unless &width and &height
+          throw new Error "I don't think those are valid chips..."
+
+      expr = initial-expr loaded-chips
+      pack-hash expr, loaded-chips
+    catch
+      alert e.message
+
+  $ \randomize .onclick = !->
+    new-chips = for i til 10
+      width: (Math.random! * 10)|0 + 1
+      height: (Math.random! * 10)|0 + 1
+
+    $ \chips .value = new-chips.map -> "#{it.width}x#{it.height}"
+      .join '    '
+    expr = initial-expr new-chips
+    pack-hash expr, new-chips
+
   display-layout data.expr
 
   # set up annealing listeners
@@ -367,7 +395,6 @@ document.add-event-listener \DOMContentLoaded !->
   annealing.stop.onclick = stop-annealing
 
 function start-annealing
-  console.log \starting
   {expr} = unpack-hash!
   tree = tree-from expr
   calculate-size tree
@@ -392,9 +419,9 @@ function stop-annealing
   a.start.disabled = false
   a.stop.disabled = true
 
-  console.log a.best-expr
-
   pack-hash a.best-expr, chips
+
+last = Date.now!
 
 function anneal-message {data}
   a = annealing
@@ -402,8 +429,9 @@ function anneal-message {data}
   case \log
     console.log data.message
   case \init
-    console.log data
     a.temp-meter-el.max = data.temp
+  case \new-expr
+    pack-hash a.best-expr, chips
   case \progress
     a.best-expr = data.best
 
@@ -413,6 +441,11 @@ function anneal-message {data}
     a.temp-meter-el
       &value = data.temp
       &textContent = data.temp
+
+    # swap display every once and a while
+    if Date.now! - last > 1000
+      last := Date.now!
+      pack-hash data.cur, chips
   case \done
     stop-annealing!
 

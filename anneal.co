@@ -91,14 +91,14 @@ function cost expr
   tree.width * tree.height
 
 # temperature schedule
-const R = 0.9
+const R = 0.95
 function next-temperature old-temp
   R * old-temp
 
 function choose-move expr
   # enumerate all candidates for chosen move
   candidates = []
-  switch m = 1 # Math.floor Math.random! * 3
+  switch m = Math.floor Math.random! * 3
   case 0 # move 1
     var last-operand
     for cur of expr
@@ -140,7 +140,7 @@ function choose-move expr
   else
     move[m] expr, ...candidates[Math.floor Math.random! * candidates.length]
 
-const P = 0.95
+const P = 0.98
 function initial-temp expr
   # perform some random moves
   c = cost expr
@@ -154,6 +154,12 @@ function initial-temp expr
   # compute the average of chance in cost in uphill moves.
   sum = moves.reduce ((a, b) -> a + b), 0
   avg = sum / moves.length
+
+  log \avg
+  log avg
+
+  log \temp
+  log -avg / Math.log(P)
 
   # T = -avg / ln(P)
   return -avg / Math.log(P)
@@ -190,13 +196,16 @@ function anneal chips, expr, temp
         if c < best-cost
           best = m
           best-cost = c
+          cur = m
+          progress {cur-cost, best-cost, best, cur, temp, moves: overall-total}
+          post-message type: \new-best
         cur = m
         cur-cost = c
         accepted++
         downhill++
       else
         if make-move temp, cur-cost, c
-          last = m
+          cur = m
           cur-cost = c
           accepted++
 
@@ -209,12 +218,12 @@ function anneal chips, expr, temp
       break
 
     # logging
-    progress {cur-cost, best-cost, best, temp, moves: overall-total}
+    progress {cur-cost, best-cost, cur, best, temp, moves: overall-total}
 
   return best
 
 function make-move temp, cur-cost, new-cost
-  Math.exp -(new-cost - cur-cost) / temp
+  Math.exp(-(new-cost - cur-cost) / temp) > Math.random!
       
 @onmessage = !({{chips, expr}: data}) ->
   anneal chips, expr
