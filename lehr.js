@@ -1,6 +1,6 @@
 var chips, layoutRoot, rectRoot, lineRoot, treeRoot, linkRoot, nodeRoot, exprRoot, layoutBorder, move, annealing, last;
 function displayLayout(expr){
-  var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, circles, maxWidth, exprWidth, charWidth, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
+  var layout, preordered, postordered, i, len$, n, len1$, slicingSvgLayout, maxDim, scale, rectangles, x0$, x1$, group, x2$, lines, x3$, tree, nodes, links, link, linkNodes, x4$, nodeGroup, x5$, g, x6$, texts, circles, maxWidth, exprWidth, charWidth, tokens, x7$, x8$, x9$, highlight, setClass, highlightTree, mouseover, mouseout;
   dNumber(expr);
   layout = treeFrom(expr);
   preordered = preorder(layout);
@@ -151,7 +151,18 @@ function displayLayout(expr){
   x6$.append('svg:text').attr({
     'class': 'node-text'
   });
-  nodeGroup.select('.node-text').text(function(it){
+  texts = nodeGroup.select('.node-text');
+  nodeGroup.filter(function(it){
+    var t;
+    t = this.querySelector('.node-text');
+    return it.node != t.textContent;
+  }).insert('svg:circle', ':first-child').attr({
+    'class': 'highlight-dot',
+    r: 10
+  }).style({
+    fill: '#000'
+  }).transition().duration(750).attr('r', 30).style('opacity', 0).remove();
+  texts.text(function(it){
     return it.node;
   });
   nodeGroup.transition().duration(750).attr('transform', function(arg$){
@@ -172,6 +183,16 @@ function displayLayout(expr){
   });
   x7$ = tokens;
   x7$.exit().remove();
+  x7$.filter(function(it){
+    var t;
+    t = this.querySelector('.token-text');
+    return it.node != t.textContent;
+  }).insert('svg:circle', ':first-child').attr({
+    'class': 'highlight-dot',
+    r: 10
+  }).style({
+    fill: '#000'
+  }).transition().duration(750).attr('r', 50).style('opacity', 0).remove();
   x8$ = x7$.enter();
   g = x8$.append('svg:g').attr('class', 'token').attr('transform', 'translate(0,0)');
   x9$ = g;

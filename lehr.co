@@ -133,8 +133,23 @@ var layout-border
       &append \svg:text
         .attr class: \node-text
 
-  node-group.select \.node-text
-    .text -> it.node
+  texts = node-group.select \.node-text
+  
+  # highlight changed nodes
+  node-group.filter ->
+    t = this.query-selector \.node-text
+    it.node != t.textContent
+  .insert \svg:circle \:first-child
+  .attr do
+    class : \highlight-dot
+    r: 10
+  .style fill: \#000
+  .transition!duration 750 
+    .attr \r 30
+    .style \opacity 0
+    .remove!
+  
+  texts.text -> it.node
 
   node-group.transition!duration 750
     .attr \transform ({x, y}) -> "translate(#x, #y)"
@@ -154,6 +169,20 @@ var layout-border
   tokens = expr-root.select-all \.token .data postordered, -> it.id
   tokens
     &exit!remove!
+
+    &filter ->
+      t = this.query-selector \.token-text
+      it.node != t.textContent
+    .insert \svg:circle \:first-child
+    .attr do
+      class : \highlight-dot
+      r: 10
+    .style fill: \#000
+    .transition!duration 750 
+      .attr \r 50
+      .style \opacity 0
+      .remove!
+
     &enter!
       g = &append \svg:g .attr \class \token
         .attr \transform 'translate(0,0)'
