@@ -121,7 +121,7 @@ function nextTemperature(oldTemp){
   return R * oldTemp;
 }
 function chooseMove(expr){
-  var candidates, m, lastOperand, i$, len$, cur, startChain, chainLen, i, to$, next, to1$;
+  var candidates, m, lastOperand, i$, len$, cur, startChain, chainLen, i, to$, to1$, next;
   candidates = [];
   switch (m = Math.floor(Math.random() * 3)) {
   case 0:
@@ -137,9 +137,8 @@ function chooseMove(expr){
     break;
   case 1:
     chainLen = 0;
-    for (i = 0, to$ = expr.length - 1; i < to$; ++i) {
+    for (i = 0, to$ = expr.length; i < to$; ++i) {
       cur = expr[i];
-      next = expr[i + 1];
       if (cur.operand) {
         if (chainLen > 0) {
           candidates.push([startChain, chainLen]);

@@ -56,7 +56,7 @@ move =
             log len
             log &[i]
             log expr.slice chain-start, chain-start + len
-            throw new Error "you fucked up" 
+            throw new Error "you fucked up"
           &[i]node = complement[<>]
 
   # swap two adjacent operand and operator
@@ -109,9 +109,8 @@ function choose-move expr
   case 1
     var start-chain
     chain-len = 0
-    for i til expr.length - 1
+    for i til expr.length
       cur = expr[i]
-      next = expr[i + 1]
       if cur.operand
         if chain-len > 0
           candidates.push [start-chain, chain-len]
@@ -224,7 +223,7 @@ function anneal chips, expr, temp
 
 function make-move temp, cur-cost, new-cost
   Math.exp(-(new-cost - cur-cost) / temp) > Math.random!
-      
+
 @onmessage = !({{chips, expr}: data}) ->
   anneal chips, expr
 
