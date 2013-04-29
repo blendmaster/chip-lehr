@@ -1,5 +1,5 @@
 "use strict";
-var complement, sliceDirection, opposite, lineDimension, oppDimension, move, R, P, slice$ = [].slice;
+var complement, sliceDirection, opposite, lineDimension, oppDimension, move, R, possible, moves, P, temps, costs, bestCosts, slice$ = [].slice;
 complement = {
   H: 'V',
   V: 'H'
@@ -116,12 +116,12 @@ function cost(expr){
   calculateSize(tree);
   return tree.width * tree.height;
 }
-R = 0.95;
+R = 0.85;
 function nextTemperature(oldTemp){
   return R * oldTemp;
 }
 function chooseMove(expr){
-  var candidates, m, lastOperand, i$, len$, cur, startChain, chainLen, i, to$, to1$, next;
+  var candidates, m, lastOperand, i$, len$, cur, startChain, chainLen, i, to$, to1$, next, taken;
   candidates = [];
   switch (m = Math.floor(Math.random() * 3)) {
   case 0:
@@ -172,10 +172,13 @@ function chooseMove(expr){
   if (candidates.length === 0) {
     return chooseMove(expr);
   } else {
-    return move[m].apply(move, [expr].concat(slice$.call(candidates[Math.floor(Math.random() * candidates.length)])));
+    moves[m]++;
+    taken = Math.floor(Math.random() * candidates.length);
+    possible.push(taken);
+    return move[m].apply(move, [expr].concat(slice$.call(candidates[taken])));
   }
 }
-P = 0.98;
+P = 0.95;
 function initialTemp(expr){
   var c, moves, res$, i, m, newC, sum, avg;
   c = cost(expr);
@@ -196,7 +199,19 @@ function initialTemp(expr){
   log(avg);
   log('temp');
   log(-avg / Math.log(P));
-  return -avg / Math.log(P);
+  return 5 * -avg / Math.log(P);
+}
+function dNumber(expr){
+  var zeros, i$, x0$, len$, results$ = [];
+  zeros = 0;
+  for (i$ = 0, len$ = expr.length; i$ < len$; ++i$) {
+    x0$ = expr[i$];
+    if (x0$.operator) {
+      zeros++;
+    }
+    results$.push(x0$.d = zeros);
+  }
+  return results$;
 }
 function anneal(chips, expr, temp){
   var cur, best, curCost, bestCost, N, maxMoves, overallTotal, accepted, downhill, total, i, m, c;
@@ -207,19 +222,23 @@ function anneal(chips, expr, temp){
   });
   cur = best = expr;
   curCost = bestCost = cost(expr);
-  N = 2 * (expr.length + chips.length);
-  maxMoves = 2 * N;
+  temps.push(temp);
+  costs.push(curCost);
+  bestCosts.push(bestCost);
+  N = 10 * (expr.length + chips.length);
+  maxMoves = 10 * N;
   log(maxMoves);
   overallTotal = 0;
-  while (temp > 0.01) {
+  while (temp > 0.1) {
     accepted = 0;
     downhill = 0;
     total = 0;
     for (i = 0; i < maxMoves; ++i) {
       total++;
-      m = chooseMove(expr);
+      m = chooseMove(cur);
+      dNumber(m);
       c = cost(m);
-      if (c < curCost) {
+      if (c <= curCost) {
         if (c < bestCost) {
           best = m;
           bestCost = c;
@@ -230,16 +249,21 @@ function anneal(chips, expr, temp){
             best: best,
             cur: cur,
             temp: temp,
-            moves: overallTotal
+            moves: overallTotal,
+            temps: temps,
+            costs: costs,
+            bestCosts: bestCosts
           });
           postMessage({
             type: 'new-best'
           });
         }
+        if (c != curCost) {
+          accepted++;
+        }
+        downhill++;
         cur = m;
         curCost = c;
-        accepted++;
-        downhill++;
       } else {
         if (makeMove(temp, curCost, c)) {
           cur = m;
@@ -250,20 +274,28 @@ function anneal(chips, expr, temp){
       if (downhill > N) {
         break;
       }
+      overallTotal++;
+      if (overallTotal % 1000 === 0) {
+        costs.push(curCost);
+        bestCosts.push(bestCost);
+      }
     }
     temp = nextTemperature(temp);
-    overallTotal += total;
-    if (accepted / total < 0.05) {
-      break;
-    }
+    temps.push(temp);
     progress({
       curCost: curCost,
       bestCost: bestCost,
       cur: cur,
       best: best,
       temp: temp,
-      moves: overallTotal
+      moves: overallTotal,
+      temps: temps,
+      costs: costs,
+      bestCosts: bestCosts
     });
+    if (accepted / total < 0.05) {
+      break;
+    }
   }
   return best;
 }
@@ -271,11 +303,30 @@ function makeMove(temp, curCost, newCost){
   return Math.exp(-(newCost - curCost) / temp) > Math.random();
 }
 this.onmessage = function(arg$){
-  var data, chips, expr;
+  var data, chips, expr, sum, avg;
   data = arg$.data, chips = data.chips, expr = data.expr;
+  moves = {
+    0: 0,
+    1: 0,
+    2: 0
+  };
+  temps = [];
+  costs = [];
+  bestCosts = [];
+  possible = [];
   anneal(chips, expr);
+  log(moves);
+  sum = possible.reduce(function(a, b){
+    return a + b;
+  }, 0);
+  avg = sum / possible.length;
+  log('avg possile');
+  log(avg);
   postMessage({
-    type: 'done'
+    type: 'done',
+    bestCosts: bestCosts,
+    temps: temps,
+    costs: costs
   });
 };
 function progress(it){

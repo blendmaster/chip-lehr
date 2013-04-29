@@ -91,10 +91,13 @@ function cost expr
   tree.width * tree.height
 
 # temperature schedule
-const R = 0.95
+const R = 0.85
 function next-temperature old-temp
   R * old-temp
 
+var possible
+
+var moves
 function choose-move expr
   # enumerate all candidates for chosen move
   candidates = []
@@ -137,9 +140,12 @@ function choose-move expr
   if candidates.length is 0
     choose-move expr
   else
-    move[m] expr, ...candidates[Math.floor Math.random! * candidates.length]
+    moves[m]++
+    taken = Math.floor(Math.random! * candidates.length)
+    possible.push taken
+    move[m] expr, ...candidates[taken]
 
-const P = 0.98
+const P = 0.95
 function initial-temp expr
   # perform some random moves
   c = cost expr
@@ -161,7 +167,19 @@ function initial-temp expr
   log -avg / Math.log(P)
 
   # T = -avg / ln(P)
-  return -avg / Math.log(P)
+  return 5 * -avg / Math.log(P)
+
+# loggin state for graphs
+var temps, costs, best-costs
+
+# decorate postordered expr with d-numbers defined by
+# section 4, last paragraph of the paper, for easy validity
+# checking for move3
+function d-number expr
+  zeros = 0
+  for expr
+    zeros++ if &operator
+    &d = zeros
 
 # constants from section 7 in the paper
 function anneal chips, expr, temp
@@ -172,15 +190,19 @@ function anneal chips, expr, temp
   cur = best = expr
   cur-cost = best-cost = cost expr
 
+  temps.push temp
+  costs.push cur-cost
+  best-costs.push best-cost
+
   # number of possible moves (M1, M2, M3), upper bound
-  N = 2 * (expr.length + chips.length)
-  max-moves = 2 * N
+  N = 10 * (expr.length + chips.length)
+  max-moves = 10 * N
 
   log max-moves
 
   overall-total = 0
 
-  while temp > 0.01
+  while temp > 0.1
     accepted = 0
     downhill = 0
     total = 0
@@ -188,36 +210,47 @@ function anneal chips, expr, temp
     for i til max-moves
       total++
 
-      m = choose-move expr
+      m = choose-move cur
+      d-number m
       c = cost m
 
-      if c < cur-cost
+      if c <= cur-cost
         if c < best-cost
           best = m
           best-cost = c
           cur = m
-          progress {cur-cost, best-cost, best, cur, temp, moves: overall-total}
+          progress {cur-cost, best-cost, best, cur, temp, moves: overall-total, temps, costs, best-costs}
           post-message type: \new-best
+        # don't count 0 change moves as accepted, because it takes a while to 
+        # stop annealing
+        accepted++ unless c == cur-cost
+        downhill++
+
         cur = m
         cur-cost = c
-        accepted++
-        downhill++
       else
         if make-move temp, cur-cost, c
           cur = m
           cur-cost = c
           accepted++
 
-      break if downhill > N
+      if downhill > N
+        break
+
+      overall-total++
+      if overall-total % 1000 is 0
+        costs.push cur-cost
+        best-costs.push best-cost
 
     temp = next-temperature temp
-    overall-total += total
+
+    temps.push temp
+
+    # logging
+    progress {cur-cost, best-cost, cur, best, temp, moves: overall-total, temps, costs, best-costs}
 
     if accepted/total < 0.05
       break
-
-    # logging
-    progress {cur-cost, best-cost, cur, best, temp, moves: overall-total}
 
   return best
 
@@ -225,10 +258,23 @@ function make-move temp, cur-cost, new-cost
   Math.exp(-(new-cost - cur-cost) / temp) > Math.random!
 
 @onmessage = !({{chips, expr}: data}) ->
+  moves := {0: 0 1: 0 2: 0}
+  temps := []
+  costs := []
+  best-costs := []
+  possible := []
+
   anneal chips, expr
 
+  log moves
+
+  sum = possible.reduce ((a, b)-> a + b), 0
+  avg = sum / possible.length
+  log 'avg possile'
+  log avg
+
   # transfer back to main thread
-  post-message type: \done
+  post-message {type: \done, best-costs, temps, costs}
 
 function progress
   post-message {type: \progress, ...it}

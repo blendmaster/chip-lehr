@@ -71,7 +71,7 @@ var layout-border
     &select \.layout-text
       .text -> it.node
       .transition!duration 750
-      .style \font-size -> 
+      .style \font-size ->
         "#{Math.max 8, (Math.min 36, it.height * 10, it.width * 10)}px"
       .attr do
         x: -> it.width * 10 / 2
@@ -134,7 +134,7 @@ var layout-border
         .attr class: \node-text
 
   texts = node-group.select \.node-text
-  
+
   # highlight changed nodes
   node-group.filter ->
     t = this.query-selector \.node-text
@@ -144,11 +144,11 @@ var layout-border
     class : \highlight-dot
     r: 10
   .style fill: \#000
-  .transition!duration 750 
+  .transition!duration 750
     .attr \r 30
     .style \opacity 0
     .remove!
-  
+
   texts.text -> it.node
 
   node-group.transition!duration 750
@@ -178,7 +178,7 @@ var layout-border
       class : \highlight-dot
       r: 10
     .style fill: \#000
-    .transition!duration 750 
+    .transition!duration 750
       .attr \r 50
       .style \opacity 0
       .remove!
@@ -415,6 +415,12 @@ document.add-event-listener \DOMContentLoaded !->
     start: $ \start
     stop: $ \stop
 
+    graph-root: d3.select \#anneal-graph
+      .append \svg:svg .attr width: 500 height: 300
+
+  annealing.line-root = annealing.graph-root
+    .append \svg:g .attr \transform 'translate(20, 20)'
+
   # stupid browser state
   annealing.start.disabled = false
   annealing.stop.disabled = true
@@ -442,6 +448,54 @@ function start-annealing
     &onmessage = anneal-message
 
     &post-message {chips, expr}
+
+!function graph-annealing {temps, costs, best-costs}
+  temp-y = d3.scale.linear!domain [0 d3.max(temps)]
+    .range [20 280]
+
+  cost-y = d3.scale.linear!domain [d3.min(best-costs), d3.max(costs)]
+    .range [20 280]
+
+  temp-x = d3.scale.linear!domain [0 temps.length]
+    .range [20 480]
+
+  cost-x = d3.scale.linear!domain [0 costs.length]
+    .range [20 480]
+
+  cost-line = d3.svg.line!
+    .x (d, i) -> cost-x i
+    .y -> 280 - cost-y it
+
+  temp-line = d3.svg.line!
+    .x (d, i) -> temp-x i
+    .y -> 280 - temp-y it
+
+  lines = annealing.line-root.select-all \path.cost
+    .data [costs, best-costs]
+  lines.enter!
+    .append \svg:path
+    .attr \class 'cost line-graph'
+  lines
+    .attr \d -> cost-line it
+
+  lines = annealing.line-root.select-all \path.temp
+    .data [temps]
+  lines.enter!
+    .append \svg:path
+    .attr \class 'temp line-graph'
+  lines
+    .attr \d -> temp-line it
+
+  annealing.line-root
+    &select-all \.costy
+      &data cost-y.ticks 10
+        &enter!
+          .append \svg:text
+          .attr \class 'costy scale'
+        &text String
+        &attr \x 0
+        &attr \y -> 280 - cost-y it
+        &exit!remove!
 
 function stop-annealing
   annealing.worker.terminate!
@@ -473,10 +527,14 @@ function anneal-message {data}
       &value = data.temp
       &textContent = data.temp
 
+    graph-annealing data
+
     # swap display every once and a while
     if Date.now! - last > 1000
       last := Date.now!
       pack-hash data.cur, chips
+      graph-annealing data
   case \done
     stop-annealing!
+    graph-annealing data
 

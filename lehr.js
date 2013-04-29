@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function(){
     for (i = 0, to$ = Math.max(10, Math.min(25, no)); i < to$; ++i) {
       res$.push({
         width: Math.random() * 15 | 0 + 1,
-        height: Math.random() * 10 | 0 + 1
+        height: Math.random() * 15 | 0 + 1
       });
     }
     newChips = res$;
@@ -437,6 +437,11 @@ document.addEventListener('DOMContentLoaded', function(){
   annealing.tempMeterEl = $('temp-meter');
   annealing.start = $('start');
   annealing.stop = $('stop');
+  annealing.graphRoot = d3.select('#anneal-graph').append('svg:svg').attr({
+    width: 500,
+    height: 300
+  });
+  annealing.lineRoot = annealing.graphRoot.append('svg:g').attr('transform', 'translate(20, 20)');
   annealing.start.disabled = false;
   annealing.stop.disabled = true;
   annealing.movesEl.value = 0;
@@ -463,6 +468,44 @@ function startAnnealing(){
     expr: expr
   });
   return x0$;
+}
+function graphAnnealing(arg$){
+  var temps, costs, bestCosts, tempY, costY, tempX, costX, costLine, tempLine, lines, x0$, x1$, x2$;
+  temps = arg$.temps, costs = arg$.costs, bestCosts = arg$.bestCosts;
+  tempY = d3.scale.linear().domain([0, d3.max(temps)]).range([20, 280]);
+  costY = d3.scale.linear().domain([d3.min(bestCosts), d3.max(costs)]).range([20, 280]);
+  tempX = d3.scale.linear().domain([0, temps.length]).range([20, 480]);
+  costX = d3.scale.linear().domain([0, costs.length]).range([20, 480]);
+  costLine = d3.svg.line().x(function(d, i){
+    return costX(i);
+  }).y(function(it){
+    return 280 - costY(it);
+  });
+  tempLine = d3.svg.line().x(function(d, i){
+    return tempX(i);
+  }).y(function(it){
+    return 280 - tempY(it);
+  });
+  lines = annealing.lineRoot.selectAll('path.cost').data([costs, bestCosts]);
+  lines.enter().append('svg:path').attr('class', 'cost line-graph');
+  lines.attr('d', function(it){
+    return costLine(it);
+  });
+  lines = annealing.lineRoot.selectAll('path.temp').data([temps]);
+  lines.enter().append('svg:path').attr('class', 'temp line-graph');
+  lines.attr('d', function(it){
+    return tempLine(it);
+  });
+  x0$ = annealing.lineRoot;
+  x1$ = x0$.selectAll('.costy');
+  x2$ = x1$.data(costY.ticks(10));
+  x2$.enter().append('svg:text').attr('class', 'costy scale');
+  x2$.text(String);
+  x2$.attr('x', 0);
+  x2$.attr('y', function(it){
+    return 280 - costY(it);
+  });
+  x2$.exit().remove();
 }
 function stopAnnealing(){
   var a;
@@ -492,13 +535,16 @@ function annealMessage(arg$){
     x0$ = a.tempMeterEl;
     x0$.value = data.temp;
     x0$.textContent = data.temp;
+    graphAnnealing(data);
     if (Date.now() - last > 1000) {
       last = Date.now();
-      return packHash(data.cur, chips);
+      packHash(data.cur, chips);
+      return graphAnnealing(data);
     }
     break;
   case 'done':
-    return stopAnnealing();
+    stopAnnealing();
+    return graphAnnealing(data);
   }
 }
 function import$(obj, src){

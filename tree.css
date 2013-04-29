@@ -92,3 +92,17 @@ section {
   stroke: #000;
   stroke-width: 4;
 }
+.line-graph {
+  fill: none;
+  stroke-width: 2;
+}
+.temp {
+  stroke: #f00;
+}
+.cost {
+  stroke: #00f;
+}
+.scale {
+  font-family: sans-serif;
+  font-size: 10pt;
+}
